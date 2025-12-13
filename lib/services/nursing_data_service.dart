@@ -1,0 +1,41 @@
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/api_config.dart';
+
+class NursingDataService {
+  static String get baseUrl => ApiConfig.currentBaseUrl;
+
+  // GET nursing diagnoses for current user
+  static Future<http.Response> getDiagnoses() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/diagnoses'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    return response;
+  }
+
+  // GET nursing interventions for current user
+  static Future<http.Response> getInterventions() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/interventions'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    return response;
+  }
+}
