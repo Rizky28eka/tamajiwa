@@ -7,6 +7,7 @@ import 'resume_poliklinik_form_model.dart';
 import 'sap_form_model.dart';
 import 'catatan_tambahan_form_model.dart';
 import 'documentation_model.dart';
+import 'review_comment_model.dart';
 
 class FormUser {
   final int id;
@@ -44,6 +45,7 @@ class FormModel {
   final int userId;
   final int patientId;
   final String status;
+  final int? score;
   final Map<String, dynamic>? data;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -57,6 +59,7 @@ class FormModel {
   final int? formableId;
   final dynamic formable;
   final List<DocumentationModel>? documentations;
+  final List<ReviewComment> reviewComments;
 
   FormModel({
     required this.id,
@@ -64,6 +67,7 @@ class FormModel {
     required this.userId,
     required this.patientId,
     required this.status,
+    this.score,
     this.data,
     required this.createdAt,
     required this.updatedAt,
@@ -75,6 +79,7 @@ class FormModel {
     this.formableId,
     this.formable,
     this.documentations,
+    this.reviewComments = const [],
   });
 
   factory FormModel.fromJson(Map<String, dynamic> json) {
@@ -108,6 +113,7 @@ class FormModel {
       userId: json['user_id'],
       patientId: json['patient_id'],
       status: json['status'],
+      score: (json['score'] as num?)?.toInt(),
       data: json['data'] != null && json['data'] is Map
           ? Map<String, dynamic>.from(json['data'])
           : null,
@@ -129,6 +135,12 @@ class FormModel {
                 .map((doc) => DocumentationModel.fromJson(doc))
                 .toList()
           : null,
+      reviewComments: json['review_comments'] is List
+          ? (json['review_comments'] as List)
+                .whereType<Map>()
+                .map((c) => ReviewComment.fromJson(Map<String, dynamic>.from(c)))
+                .toList()
+          : const [],
     );
   }
 
@@ -139,6 +151,7 @@ class FormModel {
       'user_id': userId,
       'patient_id': patientId,
       'status': status,
+      'score': score,
       'data': data,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -156,6 +169,7 @@ class FormModel {
     int? userId,
     int? patientId,
     String? status,
+    int? score,
     Map<String, dynamic>? data,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -164,6 +178,7 @@ class FormModel {
     Patient? patient,
     String? comments,
     List<DocumentationModel>? documentations,
+    List<ReviewComment>? reviewComments,
   }) {
     return FormModel(
       id: id ?? this.id,
@@ -171,6 +186,7 @@ class FormModel {
       userId: userId ?? this.userId,
       patientId: patientId ?? this.patientId,
       status: status ?? this.status,
+      score: score ?? this.score,
       data: data ?? this.data,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -179,6 +195,7 @@ class FormModel {
       patient: patient ?? this.patient,
       comments: comments ?? this.comments,
       documentations: documentations ?? this.documentations,
+      reviewComments: reviewComments ?? this.reviewComments,
     );
   }
 }

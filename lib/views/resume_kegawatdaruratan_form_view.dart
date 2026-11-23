@@ -958,10 +958,11 @@ class _ResumeKegawatdaruratanFormViewState
                   initialValue: initialValues,
                   child: Card(
                     elevation: 0,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
+                      side: BorderSide(
+                          color: Theme.of(context).colorScheme.outlineVariant),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),

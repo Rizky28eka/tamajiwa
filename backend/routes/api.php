@@ -46,6 +46,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('forms/{form}/upload-setting-tempat', [FormController::class, 'uploadSettingTempat']);
     Route::post('forms/{form}/upload-dokumentasi', [FormController::class, 'uploadDokumentasi']);
     Route::post('forms/{form}/review', [FormController::class, 'reviewForm']);
+    Route::post('review-comments/{reviewComment}/resolve', [FormController::class, 'resolveComment']);
+
+    // In-app notifications
+    Route::get('notifications', [\App\Http\Controllers\NotificationController::class, 'index']);
+    Route::post('notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllRead']);
+    Route::post('notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markRead']);
     Route::post('forms/{form}/generate-pdf', [PdfController::class, 'generate']);
     Route::get('forms/{form}/genogram/svg', [\App\Http\Controllers\GenogramController::class, 'render']);
     Route::apiResource('forms', FormController::class);

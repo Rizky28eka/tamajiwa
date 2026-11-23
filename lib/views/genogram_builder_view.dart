@@ -230,7 +230,7 @@ class GenogramBuilderView extends StatelessWidget {
   ) {
     Get.bottomSheet(
       Container(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         padding: const EdgeInsets.all(16),
         child: Wrap(
           children: [

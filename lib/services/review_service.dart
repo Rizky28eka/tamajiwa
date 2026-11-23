@@ -36,7 +36,13 @@ class ReviewService {
   }
 
   // POST review for a form
-  static Future<http.Response> reviewForm(int formId, String status, String? comment) async {
+  static Future<http.Response> reviewForm(
+    int formId,
+    String status,
+    String? comment, {
+    List<Map<String, String?>> sectionComments = const [],
+    int? score,
+  }) async {
     final logger = LoggerService();
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -53,6 +59,8 @@ class ReviewService {
       body: jsonEncode({
         'status': status,
         'comment': comment,
+        if (score != null) 'score': score,
+        if (sectionComments.isNotEmpty) 'comments': sectionComments,
       }),
     );
 
@@ -65,5 +73,19 @@ class ReviewService {
     );
 
     return response;
+  }
+
+  /// Tandai/buka kembali komentar review (hanya pemilik formulir).
+  static Future<http.Response> toggleResolved(int commentId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    return http.post(
+      Uri.parse('$baseUrl/review-comments/$commentId/resolve'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
   }
 }

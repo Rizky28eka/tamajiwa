@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/patient_service.dart';
 import '../services/logger_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/ds/ds.dart';
 
 class PatientsListView extends StatefulWidget {
   const PatientsListView({super.key});
@@ -18,7 +21,7 @@ class PatientsListViewState extends State<PatientsListView>
   bool _loading = true;
   String _error = '';
   List<Map<String, dynamic>> _items = [];
-  bool _isSearchFocused = false;
+
 
   @override
   bool get wantKeepAlive => true;
@@ -131,6 +134,7 @@ class PatientsListViewState extends State<PatientsListView>
   @override
   void dispose() {
     _logger.info('Disposing PatientsListView');
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -138,507 +142,126 @@ class PatientsListViewState extends State<PatientsListView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isWideScreen = constraints.maxWidth > 600;
-            final maxContentWidth = isWideScreen ? 1200.0 : double.infinity;
-            final crossAxisCount = isWideScreen
-                ? (constraints.maxWidth > 900 ? 3 : 2)
-                : 1;
-
-            return Column(
-              children: [
-                // Header Section
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isWideScreen ? 32.0 : 20.0,
-                    vertical: 24.0,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
+        bottom: false,
+        child: LayoutBuilder(builder: (context, c) {
+          final cols = c.maxWidth > 900 ? 3 : (c.maxWidth > 600 ? 2 : 1);
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: RefreshIndicator(
+                color: AppColors.ink,
+                backgroundColor: AppColors.lime,
+                onRefresh: _fetch,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                  children: [
+                    DsPageHeader(
+                      title: 'Pasien',
+                      subtitle: _loading
+                          ? 'Memuat…'
+                          : '${_items.length} pasien terdaftar',
                     ),
-                  ),
-                  child: Center(
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: maxContentWidth),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Daftar Pasien',
-                                      style: textTheme.headlineMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: colorScheme.onSurface,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${_items.length} pasien terdaftar',
-                                      style: textTheme.bodyMedium?.copyWith(
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (!isWideScreen)
-                                IconButton.filledTonal(
-                                  icon: const Icon(Icons.person_add_rounded),
-                                  onPressed: () async {
-                                    await Get.toNamed('/patient-form');
-                                    _fetch();
-                                  },
-                                  tooltip: 'Tambah Pasien',
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          // Search Bar
-                          _buildSearchBar(colorScheme, isWideScreen),
-                        ],
-                      ),
+                    const SizedBox(height: 16),
+                    DsSearchField(
+                      controller: _searchController,
+                      hint: 'Cari nama atau nomor RM',
+                      onChanged: (_) => _debounceFetch(),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    if (_loading)
+                      const Padding(
+                          padding: EdgeInsets.all(48),
+                          child: Center(child: CircularProgressIndicator()))
+                    else if (_error.isNotEmpty)
+                      DsError(message: _error, onRetry: _fetch)
+                    else if (_items.isEmpty)
+                      DsEmpty(
+                        icon: Icons.person_search_rounded,
+                        title: 'Belum ada pasien',
+                        message: 'Tambahkan pasien untuk mulai mengisi formulir.',
+                        actionLabel: 'Tambah pasien',
+                        onAction: _addPatient,
+                      )
+                    else
+                      _grid(theme, cols),
+                  ],
                 ),
-
-                // Content Section
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _fetch,
-                    color: colorScheme.primary,
-                    child: Center(
-                      child: Container(
-                        constraints: BoxConstraints(maxWidth: maxContentWidth),
-                        child: _loading
-                            ? _buildLoadingState(colorScheme)
-                            : _error.isNotEmpty
-                            ? _buildErrorState(colorScheme, textTheme)
-                            : _items.isEmpty
-                            ? _buildEmptyState(colorScheme, textTheme)
-                            : _buildPatientsList(
-                                colorScheme,
-                                textTheme,
-                                isWideScreen,
-                                crossAxisCount,
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-      floatingActionButton: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWideScreen = constraints.maxWidth > 600;
-          if (!isWideScreen) return const SizedBox.shrink();
-
-          return FloatingActionButton.extended(
-            onPressed: () async {
-              await Get.toNamed('/patient-form');
-              _fetch();
-            },
-            icon: const Icon(Icons.person_add_rounded),
-            label: const Text(
-              'Tambah Pasien',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
-            elevation: 4,
           );
-        },
+        }),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addPatient,
+        icon: const Icon(Icons.person_add_alt_1_rounded),
+        label: const Text('Tambah pasien'),
       ),
     );
   }
 
-  Widget _buildSearchBar(ColorScheme colorScheme, bool isWideScreen) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _isSearchFocused
-              ? colorScheme.primary
-              : colorScheme.outlineVariant.withValues(alpha: 0.5),
-          width: _isSearchFocused ? 2 : 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Focus(
-              onFocusChange: (focused) {
-                setState(() => _isSearchFocused = focused);
-              },
-              child: TextField(
-                controller: _searchController,
-                style: TextStyle(color: colorScheme.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'Cari nama pasien atau nomor RM...',
-                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    color: colorScheme.primary,
-                  ),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(
-                            Icons.clear_rounded,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            _fetch();
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                ),
-                onSubmitted: (_) => _fetch(),
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: FilledButton.icon(
-              onPressed: _fetch,
-              icon: const Icon(Icons.search_rounded, size: 20),
-              label: Text(isWideScreen ? 'Cari' : ''),
-              style: FilledButton.styleFrom(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isWideScreen ? 20 : 16,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Timer? _debounce;
+
+  void _debounceFetch() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), _fetch);
   }
 
-  Widget _buildLoadingState(ColorScheme colorScheme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: colorScheme.primary, strokeWidth: 3),
-          const SizedBox(height: 16),
-          Text(
-            'Memuat data pasien...',
-            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
-          ),
-        ],
-      ),
-    );
+  Future<void> _addPatient() async {
+    await Get.toNamed('/patient-form');
+    _fetch();
   }
 
-  Widget _buildErrorState(ColorScheme colorScheme, TextTheme textTheme) {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: colorScheme.errorContainer.withValues(alpha: 0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.error_outline_rounded,
-                  size: 64,
-                  color: colorScheme.error,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Terjadi Kesalahan',
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _error,
-                textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _fetch,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Coba Lagi'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(ColorScheme colorScheme, TextTheme textTheme) {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.person_search_rounded,
-                  size: 80,
-                  color: colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                _searchController.text.isEmpty
-                    ? 'Belum Ada Pasien'
-                    : 'Tidak Ada Hasil',
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _searchController.text.isEmpty
-                    ? 'Mulai dengan menambahkan pasien baru'
-                    : 'Coba kata kunci pencarian yang berbeda',
-                textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              if (_searchController.text.isEmpty) ...[
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: () async {
-                    await Get.toNamed('/patient-form');
-                    _fetch();
-                  },
-                  icon: const Icon(Icons.person_add_rounded),
-                  label: const Text('Tambah Pasien Pertama'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPatientsList(
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    bool isWideScreen,
-    int crossAxisCount,
-  ) {
-    if (crossAxisCount == 1) {
-      return ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(isWideScreen ? 32.0 : 20.0),
-        itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) =>
-            _buildPatientCard(_items[index], colorScheme, textTheme, false),
-      );
-    }
-
+  Widget _grid(ThemeData theme, int cols) {
     return GridView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(32.0),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 3.5,
+        crossAxisCount: cols,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: 128,
       ),
       itemCount: _items.length,
-      itemBuilder: (context, index) =>
-          _buildPatientCard(_items[index], colorScheme, textTheme, true),
+      itemBuilder: (_, i) => _card(theme, _items[i]),
     );
   }
 
-  Widget _buildPatientCard(
-    Map<String, dynamic> patient,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    bool isGrid,
-  ) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      child: Material(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        elevation: 0,
-        child: InkWell(
-          onTap: () {
-            Get.toNamed(
-              '/form-selection',
-              arguments: {
-                'patientId': patient['id'],
-                'patientName': patient['name'],
-              },
-            );
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-                width: 1,
-              ),
+  Widget _card(ThemeData theme, Map<String, dynamic> p) {
+    final name = (p['name'] ?? 'Nama tidak diketahui').toString();
+    return DsCard(
+      onTap: () => Get.toNamed('/form-selection', arguments: {
+        'patientId': p['id'],
+        'patientName': p['name'],
+      }),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(children: [
+            DsAvatar(name: name, size: 48),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall),
             ),
-            child: Row(
-              children: [
-                // Avatar
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      _getInitials(patient['name'] ?? 'N/A'),
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        patient['name'] ?? 'Nama Tidak Diketahui',
-                        style: textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.badge_outlined,
-                            size: 14,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'RM: ${patient['rm_number'] ?? 'N/A'}',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Icon(
-                            Icons.cake_outlined,
-                            size: 14,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${patient['age'] ?? '-'} th',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // Arrow
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: colorScheme.onSurfaceVariant,
-                  size: 24,
-                ),
-              ],
-            ),
-          ),
-        ),
+            const Icon(Icons.arrow_forward_rounded, size: 20),
+          ]),
+          Wrap(spacing: 8, runSpacing: 6, children: [
+            DsPill(
+                icon: Icons.badge_outlined,
+                label: 'RM ${p['rm_number'] ?? '-'}'),
+            DsPill(
+                icon: Icons.cake_outlined, label: '${p['age'] ?? '-'} th'),
+          ]),
+        ],
       ),
     );
-  }
-
-  String _getInitials(String name) {
-    // Abaikan spasi ganda dan nama kosong; substring pada string kosong akan melempar error.
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return 'N/A';
-    if (parts.length == 1) return parts[0].characters.first.toUpperCase();
-    return '${parts[0].characters.first}${parts[1].characters.first}'.toUpperCase();
   }
 }

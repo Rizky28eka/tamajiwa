@@ -1,10 +1,13 @@
-import "package:flutter/material.dart";
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/notification_controller.dart';
 import '../services/logger_service.dart';
-import '../services/api_service.dart';
 import '../models/form_type_model.dart';
+import '../theme/app_theme.dart';
+import '../widgets/ds/ds.dart';
+import '../widgets/ds/notification_bell.dart';
 
 class MahasiswaDashboardView extends GetView<DashboardController> {
   const MahasiswaDashboardView({super.key});
@@ -14,560 +17,270 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
       type: 'pengkajian',
       title: 'Pengkajian Kesehatan Jiwa',
       description: 'Formulir pengkajian awal klien',
-      icon: Icons.medical_information,
+      icon: Icons.medical_information_rounded,
     ),
     FormType(
       type: 'resume_kegawatdaruratan',
       title: 'Resume Kegawatdaruratan',
       description: 'Resume kasus darurat psikiatri',
-      icon: Icons.emergency,
+      icon: Icons.emergency_rounded,
     ),
     FormType(
       type: 'resume_poliklinik',
       title: 'Resume Poliklinik',
       description: 'Resume kunjungan poliklinik',
-      icon: Icons.local_hospital,
+      icon: Icons.local_hospital_rounded,
     ),
     FormType(
       type: 'sap',
       title: 'SAP',
       description: 'Satuan Acara Penyuluhan',
-      icon: Icons.school,
+      icon: Icons.school_rounded,
     ),
     FormType(
       type: 'terapi_aktivitas_kelompok',
       title: 'Terapi Aktivitas Kelompok',
       description: 'Formulir TAK',
-      icon: Icons.group_work,
+      icon: Icons.group_work_rounded,
     ),
     FormType(
       type: 'strategi_pelaksanaan_komunikasi',
       title: 'Strategi Komunikasi',
       description: 'Strategi pelaksanaan komunikasi',
-      icon: Icons.chat_bubble_outline,
+      icon: Icons.chat_bubble_outline_rounded,
     ),
     FormType(
       type: 'catatan_tambahan',
       title: 'Catatan Tambahan',
       description: 'Catatan dokumentasi tambahan',
-      icon: Icons.note_add,
-    ),
-    // Added 8th option or placeholder if needed, matching user's "8 pilihan"
-    // Assuming 7 are known, maybe 'Nursing Management'?
-    // Or maybe the user counts 'Genogram' separately?
-    // I will stick to these 7 known + maybe 'Logbook' or placeholder if needed.
-    // Let's add 'Nursing Management' or just keep 7 for now unless 8 is strict.
-    // User said "Ada 8 pilihan". Let's check if I missed any form.
-    // List: Pengkajian, Resume Gadar, Resume Poli, SAP, TAK, SPK, Catatan Tambahan. (7 items).
-    // Maybe the 8th is "Review" or "Profile"?
-    // I will add 'Logbook / Lainnya' for now to make grid even if needed.
-    FormType(
-      type: 'logbook',
-      title: 'Logbook & Lainnya',
-      description: 'Catatan aktivitas harian',
-      icon: Icons.book_rounded,
+      icon: Icons.note_add_rounded,
     ),
   ];
 
   Future<void> _refreshDashboard() async {
-    final LoggerService logger = LoggerService();
-    logger.info('Memuat ulang Dashboard Mahasiswa');
-
+    LoggerService().info('Memuat ulang Dashboard Mahasiswa');
     await Future.wait([
       controller.fetchMahasiswaStats(),
       controller.fetchLatestPatients(),
-      _fetchLecturerAssignment(),
+      if (Get.isRegistered<NotificationController>())
+        Get.find<NotificationController>().fetch(),
     ]);
-  }
-
-  static Future<void> _fetchLecturerAssignment() async {
-    try {
-      final response = await ApiService.getAssignedLecturer();
-      if (response.statusCode == 200) {
-        // Handle the response to update UI state if needed
-      }
-    } catch (e) {
-      // print('Error fetching lecturer assignment: $e');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final LoggerService logger = LoggerService();
-    logger.info('Dashboard Mahasiswa dimuat');
-
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
+          color: AppColors.ink,
+          backgroundColor: AppColors.lime,
           onRefresh: _refreshDashboard,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isTablet = constraints.maxWidth > 600;
-              final isDesktop = constraints.maxWidth > 900;
-
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 40.0 : (isTablet ? 24.0 : 16.0),
-                    vertical: 24.0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(context),
-                      const SizedBox(height: 32),
-                      _buildServicesSection(context, isTablet, isDesktop),
-                      const SizedBox(height: 40),
-                      _buildStatsSection(context, isTablet, isDesktop),
-                      const SizedBox(height: 40),
-                      _buildPatientsSection(
-                        context,
-                        isTablet,
-                        isDesktop,
-                        logger,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-      floatingActionButton: _buildFAB(context, logger),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final AuthController authController = Get.find();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                Icons.dashboard_rounded,
-                color: colorScheme.onPrimaryContainer,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Dashboard Mahasiswa',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Pilih layanan formulir di bawah ini',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              onPressed: () => authController.logout(),
-              icon: Icon(Icons.logout_rounded, color: colorScheme.error),
-              tooltip: 'Keluar',
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildServicesSection(
-    BuildContext context,
-    bool isTablet,
-    bool isDesktop,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Menu Layanan',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isDesktop ? 4 : (isTablet ? 3 : 2),
-            childAspectRatio: 1.1, // Adjust aspect ratio for card shape
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: _formTypes.length,
-          itemBuilder: (context, index) {
-            return _buildServiceCard(context, _formTypes[index]);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildServiceCard(BuildContext context, FormType formType) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: InkWell(
-        onTap: () => _onServiceSelected(formType.type),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  formType.icon,
-                  color: colorScheme.primary,
-                  size: 32,
+          child: LayoutBuilder(builder: (context, c) {
+            final wide = c.maxWidth > 600;
+            final hPad = c.maxWidth > 900 ? 40.0 : (wide ? 24.0 : 20.0);
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(hPad, 16, hPad, 120),
+                  children: [
+                    _header(context),
+                    const SizedBox(height: 24),
+                    _statsSection(context, wide),
+                    const SizedBox(height: 32),
+                    const DsSectionTitle('Buat dokumentasi'),
+                    _servicesGrid(context, c.maxWidth),
+                    const SizedBox(height: 32),
+                    const DsSectionTitle('Pasien terbaru'),
+                    _patients(context),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                formType.title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              // Optional: Show description if space allows, or keep it clean
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _onServiceSelected(String formType) {
-    // Navigate to Patient Selection Screen
-    Get.toNamed('/patient-selection', arguments: {'formType': formType});
-  }
-
-  Widget _buildStatsSection(
-    BuildContext context,
-    bool isTablet,
-    bool isDesktop,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Statistik',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Obx(() {
-          if (controller.isMahasiswaStatsLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (controller.errorMessage.isNotEmpty) {
-            return _buildErrorCard(context, controller.errorMessage);
-          }
-
-          final stats = controller.mahasiswaStats;
-          if (stats.isEmpty) {
-            return const Text("Tidak ada data statistik.");
-          }
-
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              int crossAxisCount = 2;
-              if (constraints.maxWidth > 900) {
-                crossAxisCount = 4;
-              } else if (constraints.maxWidth > 600) {
-                crossAxisCount = 3;
-              }
-
-              return GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: crossAxisCount,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 2.0, // Flatter stats cards
-                children: [
-                  _buildStatCard(
-                    context,
-                    'Total Pasien',
-                    stats['total_pasien'].toString(),
-                    Icons.people_rounded,
-                    Theme.of(context).colorScheme.primary,
-                  ),
-                  _buildStatCard(
-                    context,
-                    'Total Form',
-                    stats['total_form'].toString(),
-                    Icons.description_rounded,
-                    Theme.of(context).colorScheme.tertiary,
-                  ),
-                  _buildStatCard(
-                    context,
-                    'Form Disetujui',
-                    stats['form_disetujui'].toString(),
-                    Icons.check_circle_rounded,
-                    Colors.green.shade600,
-                  ),
-                  _buildStatCard(
-                    context,
-                    'Perlu Revisi',
-                    (stats['form_revisi'] ?? 0).toString(),
-                    Icons.warning_rounded,
-                    Theme.of(context).colorScheme.error,
-                  ),
-                ],
-              );
-            },
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(
-    BuildContext context,
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  value,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPatientsSection(
-    BuildContext context,
-    bool isTablet,
-    bool isDesktop,
-    LoggerService logger,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Daftar Pasien Terbaru',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Obx(() {
-          if (controller.isLatestPatientsLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (controller.latestPatients.isEmpty) {
-            return _buildEmptyStateCard(
-              context,
-              'Belum ada data pasien.',
-              Icons.person_add_rounded,
             );
+          }),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          LoggerService().userAction(
+            action: 'Tombol Tambah Pasien ditekan',
+            metadata: {'page': 'MahasiswaDashboardView'},
+          );
+          final result = await Get.toNamed('/patient-form');
+          if (result != null) {
+            await controller.fetchLatestPatients();
+            await controller.fetchMahasiswaStats();
           }
-
-          return _buildPatientsList(context, logger, isTablet, isDesktop);
-        }),
-      ],
+        },
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Tambah pasien'),
+      ),
     );
   }
 
-  Widget _buildPatientsList(
-    BuildContext context,
-    LoggerService logger,
-    bool isTablet,
-    bool isDesktop,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    // Material (bukan Container berwarna) agar efek sentuh ListTile tetap terlihat.
-    return Material(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
+  Widget _header(BuildContext context) {
+    final auth = Get.find<AuthController>();
+    final name = auth.user?.name ?? 'Mahasiswa';
+    final first = name.trim().split(RegExp(r'\s+')).first;
+    return Row(children: [
+      DsAvatar(name: name, size: 52),
+      const SizedBox(width: 14),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Halo, $first',
+              style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 2),
+          Text('Siap mendokumentasikan hari ini?',
+              style: Theme.of(context).textTheme.bodySmall),
+        ]),
       ),
-      child: ListView.separated(
+      const NotificationBell(),
+      const SizedBox(width: 8),
+      DsRoundIcon(
+        icon: Icons.logout_rounded,
+        tooltip: 'Keluar',
+        onTap: () => auth.logout(),
+      ),
+    ]);
+  }
+
+  Widget _statsSection(BuildContext context, bool wide) {
+    return Obx(() {
+      if (controller.isMahasiswaStatsLoading &&
+          controller.mahasiswaStats.isEmpty) {
+        return const SizedBox(
+            height: 120, child: Center(child: CircularProgressIndicator()));
+      }
+      if (controller.errorMessage.isNotEmpty &&
+          controller.mahasiswaStats.isEmpty) {
+        return DsError(
+            message: controller.errorMessage,
+            onRetry: controller.fetchMahasiswaStats);
+      }
+      final s = controller.mahasiswaStats;
+      String v(String k) => (s[k] ?? 0).toString();
+      final tiles = [
+        DsStat(
+            value: v('total_pasien'),
+            label: 'Total pasien',
+            icon: Icons.people_alt_rounded,
+            highlight: true),
+        DsStat(
+            value: v('total_form'),
+            label: 'Total formulir',
+            icon: Icons.description_rounded),
+        DsStat(
+            value: v('form_disetujui'),
+            label: 'Disetujui',
+            icon: Icons.check_circle_rounded),
+        DsStat(
+            value: v('form_revisi'),
+            label: 'Perlu revisi',
+            icon: Icons.replay_rounded),
+      ];
+      return GridView.count(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(8),
-        itemCount: controller.latestPatients.length,
-        separatorBuilder: (context, index) => Divider(
-          height: 1,
-          thickness: 1,
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-        ),
-        itemBuilder: (context, index) {
-          final patient = controller.latestPatients[index];
-          return _buildPatientTile(context, patient, logger);
-        },
-      ),
-    );
+        crossAxisCount: wide ? 4 : 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: wide ? 1.5 : 1.35,
+        children: tiles,
+      );
+    });
   }
 
-  /// Huruf awal nama; aman untuk nama kosong atau null.
-  String _initial(dynamic name) {
-    final text = (name as String?)?.trim() ?? '';
-    return text.isEmpty ? '?' : text.characters.first.toUpperCase();
-  }
-
-  Widget _buildPatientTile(
-    BuildContext context,
-    Map<String, dynamic> patient,
-    LoggerService logger,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: colorScheme.primaryContainer,
-        child: Text(
-          _initial(patient['name']),
-          style: TextStyle(color: colorScheme.onPrimaryContainer),
-        ),
+  Widget _servicesGrid(BuildContext context, double width) {
+    final cols = width > 900 ? 4 : (width > 600 ? 3 : 2);
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: cols,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        mainAxisExtent: 128,
       ),
-      title: Text(patient['name'] ?? 'Tanpa Nama'),
-      subtitle: Text('RM: ${patient['rm_number'] ?? '-'}'),
-      onTap: () {
-        Get.toNamed(
-          '/form-selection',
-          arguments: {
-            'patientId': patient['id'],
-            'patientName': patient['name'],
-          },
+      itemCount: _formTypes.length,
+      itemBuilder: (context, i) {
+        final f = _formTypes[i];
+        return DsCard(
+          onTap: () =>
+              Get.toNamed('/patient-selection', arguments: {'formType': f.type}),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                    color: AppColors.lime, shape: BoxShape.circle),
+                child: Icon(f.icon, size: 20, color: AppColors.ink),
+              ),
+              Text(f.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall),
+            ],
+          ),
         );
       },
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
     );
   }
 
-
-  Widget _buildEmptyStateCard(
-    BuildContext context,
-    String message,
-    IconData icon,
-  ) {
-    return Center(
-      child: Padding(padding: const EdgeInsets.all(16.0), child: Text(message)),
-    );
-  }
-
-  Widget _buildErrorCard(BuildContext context, String error) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        error,
-        style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildFAB(BuildContext context, LoggerService logger) {
-    return FloatingActionButton.extended(
-      onPressed: () async {
-        logger.userAction(
-          action: 'Tombol Tambah Pasien ditekan',
-          metadata: {'page': 'MahasiswaDashboardView'},
+  Widget _patients(BuildContext context) {
+    return Obx(() {
+      if (controller.isLatestPatientsLoading &&
+          controller.latestPatients.isEmpty) {
+        return const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()));
+      }
+      if (controller.latestPatients.isEmpty) {
+        return const DsCard(
+          child: DsEmpty(
+            icon: Icons.person_add_alt_1_rounded,
+            title: 'Belum ada pasien',
+            message: 'Tambahkan pasien pertama untuk mulai mengisi formulir.',
+          ),
         );
-        final result = await Get.toNamed('/patient-form');
-        if (result != null) {
-          await controller.fetchLatestPatients();
-          await controller.fetchMahasiswaStats();
-        }
-      },
-      icon: const Icon(Icons.add_rounded),
-      label: const Text('Tambah Pasien'),
-      elevation: 4,
-    );
+      }
+      return Column(
+        children: [
+          for (final p in controller.latestPatients) ...[
+            DsCard(
+              padding: const EdgeInsets.all(14),
+              radius: AppRadius.md,
+              onTap: () => Get.toNamed('/form-selection', arguments: {
+                'patientId': p['id'],
+                'patientName': p['name'],
+              }),
+              child: Row(children: [
+                DsAvatar(name: p['name'] as String?, size: 46),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text((p['name'] ?? 'Tanpa nama').toString(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(height: 3),
+                        Text('RM ${p['rm_number'] ?? '-'}',
+                            style: Theme.of(context).textTheme.bodySmall),
+                      ]),
+                ),
+                const Icon(Icons.arrow_forward_rounded, size: 20),
+              ]),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+      );
+    });
   }
 }

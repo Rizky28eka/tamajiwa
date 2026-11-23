@@ -39,7 +39,20 @@ class FormController extends Controller
             $query->where('patient_id', $request->patient_id);
         }
 
-        $forms = $query->with(['genogram', 'patient', 'formable'])->orderBy('created_at', 'desc')->paginate(10);
+        // Filter by status if provided
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Lecturers can narrow down to one of their students (already limited
+        // to assigned students above, so this cannot widen access).
+        if ($user->role === 'dosen' && $request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        $perPage = max(1, min((int) $request->query('per_page', 10), 100));
+
+        $forms = $query->with(['genogram', 'patient', 'user', 'formable'])->orderBy('created_at', 'desc')->paginate($perPage);
 
         return response()->json($forms);
     }
@@ -73,6 +86,10 @@ class FormController extends Controller
 
         $form = Form::create($validated);
 
+        if ($form->status === 'submitted') {
+            $this->notifyDosenOfSubmission($form, $request->user());
+        }
+
         // If the form type is pengkajian and it includes genogram data, validate and create the genogram
         if ($validated['type'] === 'pengkajian' && isset($validated['data']['genogram'])) {
             $genogram = $validated['data']['genogram'];
@@ -98,7 +115,7 @@ class FormController extends Controller
     public function show(Request $request, Form $form)
     {
         // Ensure the form belongs to the authenticated user or allow 'dosen' to view submitted forms for review
-        if ($form->user_id !== $request->user()->id && $request->user()->role !== 'dosen') {
+        if ($form->user_id !== $request->user()->id && ! $this->isAssignedDosen($request->user(), $form)) {
             return response()->json([
                 'error' => [
                     'code' => 'ROLE_FORBIDDEN',
@@ -108,7 +125,7 @@ class FormController extends Controller
             ], 403);
         }
 
-        return response()->json($form->load(['genogram', 'formable']));
+        return response()->json($form->load(['genogram', 'formable', 'reviewComments.reviewer:id,name']));
     }
 
     /**
@@ -138,7 +155,12 @@ class FormController extends Controller
             $this->validateNursingIds($validated['data']);
         }
 
+        $previousStatus = $form->status;
         $form->update($validated);
+
+        if ($form->status === 'submitted' && $previousStatus !== 'submitted') {
+            $this->notifyDosenOfSubmission($form, $request->user());
+        }
 
         // If the form type is pengkajian and it includes genogram data, update or create the genogram
         if (($validated['type'] ?? $form->type) === 'pengkajian' && isset($validated['data']['genogram'])) {
@@ -403,7 +425,11 @@ class FormController extends Controller
                 // Non-dosen users can only see their own submitted forms
                 $query->where('user_id', $request->user()->id);
             } else {
-                $query = Form::query();
+                // Dosen hanya melihat formulir mahasiswa bimbingannya.
+                $query = Form::query()->whereIn(
+                    'user_id',
+                    User::where('dosen_id', $request->user()->id)->select('id')
+                );
             }
 
             // Filter by status = submitted
@@ -441,15 +467,38 @@ class FormController extends Controller
             ], 403);
         }
 
+        if (! $this->isAssignedDosen($request->user(), $form)) {
+            return response()->json([
+                'error' => [
+                    'code' => 'NOT_ASSIGNED',
+                    'message' => 'You can only review forms from your assigned students',
+                ],
+            ], 403);
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:revised,approved',
             'comment' => 'nullable|string',
+            'score' => 'nullable|integer|min:0|max:100',
+            'comments' => 'nullable|array|max:50',
+            'comments.*.section' => 'nullable|string|max:100',
+            'comments.*.comment' => 'required|string|max:2000',
         ]);
 
-        // Update the form status
+        // Update the form status (and score, when the lecturer gave one)
         $form->update([
             'status' => $validated['status'],
+            'score' => $validated['score'] ?? $form->score,
         ]);
+
+        // Komentar per bagian (opsional)
+        foreach ($validated['comments'] ?? [] as $item) {
+            $form->reviewComments()->create([
+                'reviewer_id' => $request->user()->id,
+                'section' => $item['section'] ?? null,
+                'comment' => $item['comment'],
+            ]);
+        }
 
         // If status is revised, create a revision record
         if ($validated['status'] === 'revised') {
@@ -459,10 +508,85 @@ class FormController extends Controller
             ]);
         }
 
+        $this->notifyStudentOfReview($form, $request->user(), $validated['status'], count($validated['comments'] ?? []));
+
         return response()->json([
             'message' => 'Form reviewed successfully',
-            'form' => $form->load('revisions.reviewer'),
+            'form' => $form->load(['revisions.reviewer', 'reviewComments.reviewer:id,name']),
         ]);
+    }
+
+    /**
+     * Beri tahu dosen pembimbing bahwa mahasiswanya mengajukan formulir.
+     */
+    private function notifyDosenOfSubmission(Form $form, User $student): void
+    {
+        if (! $student->dosen_id) {
+            return;
+        }
+
+        \App\Models\UserNotification::create([
+            'user_id' => $student->dosen_id,
+            'type' => 'form_submitted',
+            'title' => 'Formulir baru menunggu review',
+            'body' => $student->name.' mengajukan formulir '.str_replace('_', ' ', $form->type).'.',
+            'form_id' => $form->id,
+        ]);
+    }
+
+    /**
+     * Beri tahu mahasiswa hasil review dosen.
+     */
+    private function notifyStudentOfReview(Form $form, User $dosen, string $status, int $commentCount): void
+    {
+        $approved = $status === 'approved';
+
+        \App\Models\UserNotification::create([
+            'user_id' => $form->user_id,
+            'type' => $approved ? 'form_approved' : 'form_revised',
+            'title' => $approved ? 'Formulir disetujui' : 'Formulir perlu revisi',
+            'body' => $approved
+                ? $dosen->name.' menyetujui formulir '.str_replace('_', ' ', $form->type).'.'
+                : $dosen->name.' meminta revisi formulir '.str_replace('_', ' ', $form->type)
+                    .($commentCount > 0 ? " ({$commentCount} komentar)." : '.'),
+            'form_id' => $form->id,
+        ]);
+    }
+
+    /**
+     * Apakah $user dosen pembimbing dari pemilik formulir ini.
+     */
+    private function isAssignedDosen(User $user, Form $form): bool
+    {
+        if ($user->role !== 'dosen') {
+            return false;
+        }
+
+        return User::where('id', $form->user_id)->where('dosen_id', $user->id)->exists();
+    }
+
+    /**
+     * Mahasiswa pemilik formulir menandai komentar review sebagai sudah diperbaiki.
+     */
+    public function resolveComment(Request $request, \App\Models\ReviewComment $reviewComment)
+    {
+        $form = $reviewComment->form;
+
+        if ($form->user_id !== $request->user()->id) {
+            return response()->json([
+                'error' => [
+                    'code' => 'ROLE_FORBIDDEN',
+                    'message' => 'Only the form owner can resolve review comments',
+                    'required_role' => 'owner',
+                ],
+            ], 403);
+        }
+
+        $reviewComment->update([
+            'resolved_at' => $reviewComment->resolved_at ? null : now(),
+        ]);
+
+        return response()->json($reviewComment->fresh()->load('reviewer:id,name'));
     }
 
     /**

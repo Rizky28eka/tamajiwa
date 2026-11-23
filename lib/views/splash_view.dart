@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/splash_controller.dart';
 import '../services/logger_service.dart';
+import '../theme/app_theme.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -12,110 +13,78 @@ class SplashView extends StatefulWidget {
 
 class _SplashViewState extends State<SplashView>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  late Animation<double> _fadeAnimation;
+  late AnimationController _anim;
+  late Animation<double> _fade;
   final SplashController controller = Get.find<SplashController>();
-  final LoggerService _logger = LoggerService();
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeInOut,
-    );
-    _animController.forward();
-    _logger.info('SplashView initialized');
+    _anim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900));
+    _fade = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
+    _anim.forward();
+    LoggerService().info('SplashView initialized');
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    _anim.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: AppColors.lime,
       body: SafeArea(
         child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Center(
+          opacity: _fade,
+          child: Padding(
+            padding: const EdgeInsets.all(28),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Spacer(),
-                // Logo/Brand Section
                 Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [colorScheme.primary, colorScheme.secondary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.primary.withValues(alpha: 0.3),
-                        blurRadius: 25,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.spa_outlined,
-                    size: 50,
-                    color: colorScheme.onPrimary,
-                  ),
+                  width: 72,
+                  height: 72,
+                  decoration: const BoxDecoration(
+                      color: AppColors.ink, shape: BoxShape.circle),
+                  child: const Icon(Icons.spa_rounded,
+                      color: AppColors.lime, size: 36),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  'Tamajiwa',
-                  style: textTheme.headlineLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Aplikasi Asuhan Keperawatan Jiwa',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+                const SizedBox(height: 28),
+                const Text('Tamajiwa',
+                    style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 52,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -2,
+                        height: 1)),
+                const SizedBox(height: 10),
+                Text('Aplikasi asuhan keperawatan jiwa',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(color: AppColors.ink)),
                 const Spacer(),
-                // Loading Indicator and Status
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: colorScheme.primary,
+                Row(children: [
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.4, color: AppColors.ink),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Obx(
-                  () => Text(
-                    controller.statusMessage.value,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Obx(() => Text(
+                          controller.statusMessage.value,
+                          style: const TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w600),
+                        )),
                   ),
-                ),
-                const SizedBox(height: 60),
+                ]),
               ],
             ),
           ),

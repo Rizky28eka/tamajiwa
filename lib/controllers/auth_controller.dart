@@ -1,3 +1,4 @@
+import 'notification_controller.dart';
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -342,6 +343,11 @@ class AuthController extends GetxController {
       _token.value = '';
       _loginTime = null;
       _user.value = null;
+
+      // Notifikasi milik akun sebelumnya tidak boleh terbawa ke akun berikutnya.
+      if (Get.isRegistered<NotificationController>()) {
+        Get.delete<NotificationController>(force: true);
+      }
 
       // Clear persistent storage
       await _clearAuth();

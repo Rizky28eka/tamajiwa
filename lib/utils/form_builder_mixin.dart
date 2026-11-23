@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:get/get.dart';
@@ -5,7 +6,9 @@ import 'package:uuid/uuid.dart';
 import '../controllers/form_controller.dart';
 import '../controllers/patient_controller.dart';
 import '../models/patient_model.dart';
+import '../services/draft_service.dart';
 import '../services/logger_service.dart';
+import '../theme/app_theme.dart';
 import '../utils/ui_helpers.dart';
 import 'form_data_mapper.dart';
 
@@ -65,7 +68,70 @@ mixin FormBuilderMixin<T extends StatefulWidget> on State<T> {
   }) async {
     if (formId != null) {
       await loadFormData(formId);
+    } else {
+      await _restoreDraft(patientId ?? patient?.id);
+      _startDraftAutosave();
     }
+  }
+
+  // ---------------------------------------------------------------------
+  // Draf otomatis (hanya untuk formulir baru)
+  // ---------------------------------------------------------------------
+  Timer? _draftTimer;
+  String _lastDraftJson = '';
+
+  int? get _draftPatientId => currentPatientId ?? currentPatient?.id;
+
+  void _startDraftAutosave() {
+    _draftTimer?.cancel();
+    _draftTimer = Timer.periodic(const Duration(seconds: 3), (_) => saveDraftNow());
+  }
+
+  /// Simpan isian saat ini sebagai draf. Aman dipanggil kapan saja.
+  Future<void> saveDraftNow() async {
+    final pid = _draftPatientId;
+    if (pid == null || formId != null || !mounted) return;
+    if (formKey.currentState == null) return;
+    updateFormData();
+    final encoded = DraftService.encode(initialValues);
+    final snapshot = encoded.toString();
+    if (snapshot == _lastDraftJson) return; // tidak ada perubahan
+    _lastDraftJson = snapshot;
+    await DraftService.save(formType, pid, Map<String, dynamic>.from(initialValues));
+  }
+
+  Future<void> _restoreDraft(int? patientId) async {
+    if (patientId == null) return;
+    final draft = await DraftService.load(formType, patientId);
+    if (draft == null || !mounted) return;
+    setState(() => initialValues = {...initialValues, ...draft.values});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && formKey.currentState != null) {
+        formKey.currentState!.patchValue(draft.values);
+      }
+    });
+    final when = draft.savedAt;
+    UIHelpers.showSuccess(
+      title: 'Draf dipulihkan',
+      message: when == null
+          ? 'Isian terakhir Anda dimuat kembali.'
+          : 'Isian tersimpan pada ${_two(when.day)}/${_two(when.month)} ${_two(when.hour)}:${_two(when.minute)} dimuat kembali.',
+    );
+  }
+
+  String _two(int n) => n.toString().padLeft(2, '0');
+
+  Future<void> _clearDraft() async {
+    final pid = _draftPatientId;
+    if (pid != null) await DraftService.clear(formType, pid);
+  }
+
+  @override
+  void dispose() {
+    // Anak FormBuilder sudah lepas saat dispose, jadi simpan dilakukan oleh
+    // timer berkala; di sini cukup hentikan timernya.
+    _draftTimer?.cancel();
+    super.dispose();
   }
 
   /// Load existing form data
@@ -159,6 +225,11 @@ mixin FormBuilderMixin<T extends StatefulWidget> on State<T> {
               status: 'submitted',
             );
 
+      if (result != null) {
+        _draftTimer?.cancel();
+        await _clearDraft();
+      }
+
       if (mounted && result != null) {
         // Navigate back immediately without waiting
         Get.back(result: true);
@@ -194,7 +265,7 @@ mixin FormBuilderMixin<T extends StatefulWidget> on State<T> {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                    valueColor: AlwaysStoppedAnimation(AppColors.ink),
                   ),
                 )
               : const Icon(Icons.send_rounded),

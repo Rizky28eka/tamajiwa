@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../controllers/auth_controller.dart';
+import '../constants/api_config.dart';
 import '../constants/app_routes.dart';
 import '../services/logger_service.dart';
 import 'dart:async';
@@ -40,6 +41,13 @@ class SplashController extends GetxController {
       _logger.debug('Starting splash screen delay for 2 seconds...');
       await Future.delayed(const Duration(seconds: 2));
       _logger.debug('Splash screen delay completed');
+
+      // Pertama kali dibuka: minta pengguna memasukkan alamat API dulu.
+      if (!ApiConfig.isConfigured) {
+        statusMessage.value = 'Menyiapkan server...';
+        Get.offAllNamed(AppRoutes.serverSetup, arguments: {'firstRun': true});
+        return;
+      }
 
       statusMessage.value = 'Checking authentication...';
       _logger.info(

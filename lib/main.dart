@@ -5,6 +5,7 @@ import 'constants/app_routes.dart';
 import 'theme/app_theme.dart';
 import 'controllers/auth_controller.dart';
 import 'services/logger_service.dart';
+import 'constants/api_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,9 @@ void main() async {
   LoggerService().init();
   LoggerService().appStartup(environment: 'development');
  
+  // Muat alamat API yang disimpan pengguna sebelum ada panggilan jaringan.
+  await ApiConfig.load();
+
   // Initialize AuthController permanently
   final authController = AuthController();
   await authController.initAuth();

@@ -4,7 +4,10 @@ import '../controllers/patient_controller.dart';
 import '../models/patient_model.dart';
 
 import '../services/logger_service.dart';
+import '../theme/app_theme.dart';
+import '../utils/form_types.dart';
 import '../utils/ui_helpers.dart';
+import '../widgets/ds/ds.dart';
 
 class PatientSelectionView extends GetView<PatientController> {
   PatientSelectionView({super.key});
@@ -13,88 +16,81 @@ class PatientSelectionView extends GetView<PatientController> {
 
   final String formType = Get.arguments?['formType'] as String? ?? '';
 
-  // Helper to map formType string to title (can be moved to a util or service)
-  String get formTypeTitle {
-    switch (formType) {
-      case 'pengkajian':
-        return 'Pengkajian Kesehatan Jiwa';
-      case 'resume_kegawatdaruratan':
-        return 'Resume Kegawatdaruratan';
-      case 'resume_poliklinik':
-        return 'Resume Poliklinik';
-      case 'sap':
-        return 'Satuan Acara Penyuluhan (SAP)';
-      case 'terapi_aktivitas_kelompok':
-        return 'Terapi Aktivitas Kelompok';
-      case 'strategi_pelaksanaan_komunikasi':
-        return 'Strategi Pelaksanaan Komunikasi';
-      case 'logbook':
-        return 'Logbook & Lainnya';
-      case 'catatan_tambahan':
-        return 'Catatan Tambahan';
-      default:
-        return 'Formulir';
-    }
-  }
+  String get formTypeTitle => FormTypes.title(formType);
 
   @override
   Widget build(BuildContext context) {
-    // Ensure controller searches or refreshes if needed
     if (controller.patients.isEmpty && !controller.isLoading.value) {
       controller.fetchPatients();
     }
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Pilih Pasien untuk $formTypeTitle')),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (controller.patients.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+      appBar: AppBar(title: const Text('Pilih pasien')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (controller.patients.isEmpty) {
+              return DsEmpty(
+                icon: Icons.person_add_alt_1_rounded,
+                title: 'Belum ada pasien',
+                message: 'Buat pasien dulu untuk mengisi $formTypeTitle.',
+                actionLabel: 'Buat pasien baru',
+                onAction: () => Get.toNamed('/patient-form'),
+              );
+            }
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
               children: [
-                const Text('Belum ada pasien.'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => Get.toNamed('/patient-form'),
-                  child: const Text('Buat Pasien Baru'),
-                ),
+                Text(formTypeTitle, style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 4),
+                Text('Pilih pasien yang akan didokumentasikan.',
+                    style: theme.textTheme.bodySmall),
+                const SizedBox(height: 20),
+                for (final patient in controller.patients) ...[
+                  DsCard(
+                    radius: AppRadius.md,
+                    padding: const EdgeInsets.all(14),
+                    onTap: () => _navigateToForm(patient),
+                    child: Row(children: [
+                      DsAvatar(name: patient.name, size: 48),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(patient.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleSmall),
+                              const SizedBox(height: 6),
+                              Wrap(spacing: 6, runSpacing: 6, children: [
+                                DsPill(label: 'RM ${patient.rmNumber}'),
+                                DsPill(label: '${patient.age} th'),
+                              ]),
+                            ]),
+                      ),
+                      const Icon(Icons.arrow_forward_rounded, size: 20),
+                    ]),
+                  ),
+                  const SizedBox(height: 10),
+                ],
               ],
-            ),
-          );
-        }
-        return ListView.builder(
-          itemCount: controller.patients.length,
-          padding: const EdgeInsets.all(16),
-          itemBuilder: (context, index) {
-            final patient = controller.patients[index];
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(child: Text(patient.gender)),
-                title: Text(patient.name),
-                subtitle: Text(
-                  'RM: ${patient.rmNumber} | Umur: ${patient.age}',
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {
-                  _navigateToForm(patient);
-                },
-              ),
             );
-          },
-        );
-      }),
-      floatingActionButton: FloatingActionButton(
+          }),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Get.toNamed('/patient-form');
-          if (result != null) {
-            controller.fetchPatients();
-          }
+          if (result != null) controller.fetchPatients();
         },
-        tooltip: 'Tambah Pasien Baru',
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Pasien baru'),
       ),
     );
   }

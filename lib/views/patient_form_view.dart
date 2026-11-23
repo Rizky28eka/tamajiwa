@@ -503,11 +503,11 @@ class _PatientFormViewState extends State<PatientFormView> {
                           ),
                         ),
                         child: isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 24,
                                 width: 24,
                                 child: CircularProgressIndicator(
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                   strokeWidth: 3.0,
                                 ),
                               )

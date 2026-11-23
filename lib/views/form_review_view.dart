@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/form_controller.dart';
 import '../controllers/nursing_diagnosis_controller.dart';
@@ -6,7 +7,130 @@ import '../controllers/nursing_intervention_controller.dart';
 import '../controllers/review_controller.dart';
 import '../models/form_model.dart';
 import '../services/logger_service.dart';
+import '../theme/app_theme.dart';
+import '../utils/form_types.dart';
 import '../utils/ui_helpers.dart';
+import '../widgets/ds/ds.dart';
+
+/// Satu bagian formulir yang bisa dikomentari dosen.
+class _Field {
+  final String label;
+  final List<String> path;
+  const _Field(this.label, this.path);
+}
+
+class _Section {
+  final String key;
+  final String title;
+  final List<_Field> fields;
+  const _Section(this.key, this.title, this.fields);
+}
+
+const _renpra = [
+  'diagnosis',
+  'tujuan',
+  'kriteria',
+  'rasional',
+];
+
+List<_Field> _renpraFields(List<String> prefix) => [
+      for (final k in _renpra)
+        _Field(k[0].toUpperCase() + k.substring(1), [...prefix, k]),
+    ];
+
+final Map<String, List<_Section>> _specs = {
+  'pengkajian': [
+    const _Section('section_1', 'Identitas klien', [
+      _Field('Nama lengkap', ['section_1', 'nama_lengkap']),
+      _Field('Umur', ['section_1', 'umur']),
+      _Field('Jenis kelamin', ['section_1', 'jenis_kelamin']),
+      _Field('Status perkawinan', ['section_1', 'status_perkawinan']),
+    ]),
+    const _Section('section_2', 'Riwayat kehidupan', [
+      _Field('Riwayat pendidikan', ['section_2', 'riwayat_pendidikan']),
+      _Field('Pekerjaan', ['section_2', 'pekerjaan']),
+      _Field('Riwayat keluarga', ['section_2', 'riwayat_keluarga']),
+    ]),
+    _Section('section_10', 'Rencana perawatan', _renpraFields(['section_10'])),
+  ],
+  'resume_kegawatdaruratan': [
+    const _Section('identitas', 'Identitas', [
+      _Field('Nama lengkap', ['identitas', 'nama_lengkap']),
+      _Field('Umur', ['identitas', 'umur']),
+      _Field('Jenis kelamin', ['identitas', 'jenis_kelamin']),
+      _Field('Alamat', ['identitas', 'alamat']),
+      _Field('Tanggal masuk', ['identitas', 'tanggal_masuk']),
+    ]),
+    _Section('renpra', 'Rencana perawatan', [
+      ..._renpraFields(['renpra']),
+      const _Field('Evaluasi', ['renpra', 'evaluasi']),
+    ]),
+  ],
+  'resume_poliklinik': [
+    const _Section('section_1', 'Identitas klien', [
+      _Field('Nama lengkap', ['section_1', 'nama_lengkap']),
+      _Field('Umur', ['section_1', 'umur']),
+      _Field('Jenis kelamin', ['section_1', 'jenis_kelamin']),
+      _Field('Status perkawinan', ['section_1', 'status_perkawinan']),
+    ]),
+    _Section('section_9', 'Rencana perawatan', _renpraFields(['section_9'])),
+  ],
+  'sap': [
+    const _Section('identitas', 'Identitas kegiatan', [
+      _Field('Topik', ['identitas', 'topik']),
+      _Field('Sasaran', ['identitas', 'sasaran']),
+      _Field('Waktu', ['identitas', 'waktu']),
+      _Field('Tempat', ['identitas', 'tempat']),
+    ]),
+    const _Section('tujuan', 'Tujuan', [
+      _Field('Tujuan umum', ['tujuan', 'umum']),
+      _Field('Tujuan khusus', ['tujuan', 'khusus']),
+    ]),
+    _Section('renpra', 'Renpra (opsional)', _renpraFields(['renpra'])),
+  ],
+  'catatan_tambahan': [
+    const _Section('catatan', 'Catatan', [
+      _Field('Isi catatan', ['catatan', 'isi_catatan']),
+    ]),
+    _Section('renpra', 'Renpra (opsional)', _renpraFields(['catatan', 'renpra'])),
+  ],
+};
+
+dynamic _dig(Map<String, dynamic> data, List<String> path) {
+  dynamic cur = data;
+  for (final k in path) {
+    if (cur is Map && cur.containsKey(k)) {
+      cur = cur[k];
+    } else {
+      return null;
+    }
+  }
+  return cur;
+}
+
+/// Untuk jenis tanpa spesifikasi: tiap kunci tingkat atas jadi satu bagian.
+List<_Section> _genericSections(Map<String, dynamic> data) {
+  final out = <_Section>[];
+  final loose = <_Field>[];
+  data.forEach((k, v) {
+    if (v is Map) {
+      final fields = <_Field>[];
+      v.forEach((k2, v2) {
+        if (v2 is! Map && v2 is! List) fields.add(_Field(_humanize(k2.toString()), [k, k2.toString()]));
+      });
+      if (fields.isNotEmpty) out.add(_Section(k, _humanize(k), fields));
+    } else if (v is! List) {
+      loose.add(_Field(_humanize(k), [k]));
+    }
+  });
+  if (loose.isNotEmpty) out.insert(0, _Section('umum', 'Umum', loose));
+  return out;
+}
+
+String _humanize(String key) {
+  final t = key.replaceAll('_', ' ').trim();
+  return t.isEmpty ? key : t[0].toUpperCase() + t.substring(1);
+}
 
 class FormReviewView extends StatefulWidget {
   const FormReviewView({super.key});
@@ -24,385 +148,247 @@ class _FormReviewViewState extends State<FormReviewView> {
     NursingInterventionController(),
   );
   final TextEditingController _commentController = TextEditingController();
-  final RxString _status = 'submitted'.obs;
+  final TextEditingController _scoreController = TextEditingController();
   final LoggerService _logger = LoggerService();
   late int formId;
+  late final Future<FormModel?> _future;
+
+  String _status = 'submitted';
+  bool _submitting = false;
+
+  /// Komentar per bagian yang baru ditulis dosen pada sesi ini.
+  final Map<String, String> _pending = {};
 
   @override
   void initState() {
     super.initState();
-    formId = int.parse(Get.parameters['formId'] ?? '0');
+    formId = int.tryParse(Get.parameters['formId'] ?? '') ?? 0;
     _logger.info('FormReviewView diinisialisasi', context: {'formId': formId});
-    if (formId != 0) {
-      _loadForm(formId);
-    }
+    _future = formController.getFormById(formId).then((f) {
+      if (f != null && mounted) setState(() => _status = f.status);
+      return f;
+    });
   }
 
-  Future<void> _loadForm(int id) async {
-    final form = await formController.getFormById(id);
-    if (form != null) {
-      _status.value = form.status;
-    }
+  @override
+  void dispose() {
+    _scoreController.dispose();
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  bool get _canReview => _status == 'submitted' && !_submitting;
+
+  Future<void> _editComment(String key, String title) async {
+    final ctrl = TextEditingController(text: _pending[key] ?? '');
+    final result = await Get.bottomSheet<String>(
+      SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+              20, 16, 20, 16 + MediaQuery.of(Get.context!).viewInsets.bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Komentar: $title',
+                  style: Get.theme.textTheme.titleLarge),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              maxLines: 4,
+              maxLength: 2000,
+              decoration: const InputDecoration(
+                  hintText: 'Apa yang perlu diperbaiki di bagian ini?'),
+            ),
+            const SizedBox(height: 8),
+            Row(children: [
+              if ((_pending[key] ?? '').isNotEmpty)
+                TextButton(
+                  onPressed: () => Get.back(result: ''),
+                  child: const Text('Hapus'),
+                ),
+              const Spacer(),
+              FilledButton(
+                onPressed: () => Get.back(result: ctrl.text.trim()),
+                child: const Text('Simpan komentar'),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+      isScrollControlled: true,
+    );
+    ctrl.dispose();
+    if (result == null) return;
+    setState(() {
+      if (result.isEmpty) {
+        _pending.remove(key);
+      } else {
+        _pending[key] = result;
+      }
+    });
   }
 
   Future<void> _reviewForm(String status) async {
-    _logger.userInteraction(
-      'Aksi review form dipilih',
-      page: 'FormReviewView',
-      data: {
-        'formId': formId,
-        'selectedStatus': status,
-        'hasComment': _commentController.text.isNotEmpty,
-      },
-    );
-
-    Get.defaultDialog(
-      title: 'Konfirmasi',
-      middleText: 'Apakah Anda yakin ingin $status form ini?',
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
-        TextButton(
-          onPressed: () async {
-            _logger.userInteraction(
-              'Konfirmasi review form',
-              page: 'FormReviewView',
-              data: {
-                'formId': formId,
-                'status': status,
-                'comment': _commentController.text,
-              },
-            );
-
-            Get.back(); // Close dialog
-            // Call the backend API to review the form
-            final reviewController = Get.find<ReviewController>();
-            await reviewController.reviewForm(
-              formId,
-              status,
-              _commentController.text,
-            );
-
-            if (status == 'approved') {
-              _logger.info(
-                'Form berhasil disetujui',
-                context: {'formId': formId},
-              );
-              UIHelpers.showSuccess(
-                title: 'Sukses',
-                message: 'Form berhasil disetujui',
-              );
-            } else {
-              _logger.info(
-                'Form dikembalikan untuk revisi',
-                context: {'formId': formId},
-              );
-              UIHelpers.showInfo(
-                title: 'Info',
-                message: 'Form berhasil dikembalikan untuk revisi',
-              );
-            }
-
-            // Navigate back to dashboard
-            Get.back();
-          },
-          child: Text(status == 'approved' ? 'Setujui' : 'Minta Revisi'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormContent(FormModel form) {
-    // This function builds the form content based on its type
-    switch (form.type) {
-      case 'pengkajian':
-        return _buildPengkajianForm(form);
-      case 'resume_kegawatdaruratan':
-        return _buildResumeKegawatdaruratanForm(form);
-      case 'resume_poliklinik':
-        return _buildResumePoliklinikForm(form);
-      case 'sap':
-        return _buildSapForm(form);
-      case 'catatan_tambahan':
-        return _buildCatatanTambahanForm(form);
-      default:
-        return _buildGenericForm(form);
+    final overall = _commentController.text.trim();
+    if (status == 'revised' && overall.isEmpty && _pending.isEmpty) {
+      UIHelpers.showWarning(
+        title: 'Komentar diperlukan',
+        message:
+            'Tulis komentar umum atau komentar pada bagian yang perlu direvisi.',
+      );
+      return;
     }
-  }
 
-  Widget _buildPengkajianForm(FormModel form) {
-    final data = form.data ?? {};
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Form Pengkajian Kesehatan Jiwa',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        if (data['section_1'] != null) ...[
-          const Text(
-            'Identitas Klien',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField(
-            'Nama Lengkap',
-            data['section_1']['nama_lengkap'],
-          ),
-          _buildReadOnlyField('Umur', data['section_1']['umur']),
-          _buildReadOnlyField(
-            'Jenis Kelamin',
-            data['section_1']['jenis_kelamin'],
-          ),
-          _buildReadOnlyField(
-            'Status Perkawinan',
-            data['section_1']['status_perkawinan'],
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (data['section_2'] != null) ...[
-          const Text(
-            'Riwayat Kehidupan',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField(
-            'Riwayat Pendidikan',
-            data['section_2']['riwayat_pendidikan'],
-          ),
-          _buildReadOnlyField('Pekerjaan', data['section_2']['pekerjaan']),
-          _buildReadOnlyField(
-            'Riwayat Keluarga',
-            data['section_2']['riwayat_keluarga'],
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (data['section_10'] != null) ...[
-          const Text(
-            'Rencana Perawatan',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField('Diagnosis', data['section_10']['diagnosis']),
-          _buildReadOnlyField('Tujuan', data['section_10']['tujuan']),
-          _buildReadOnlyField('Kriteria', data['section_10']['kriteria']),
-          _buildReadOnlyField('Rasional', data['section_10']['rasional']),
-          const SizedBox(height: 16),
-        ],
-        // Add more sections as needed
-      ],
-    );
-  }
+    final scoreText = _scoreController.text.trim();
+    int? score;
+    if (scoreText.isNotEmpty) {
+      score = int.tryParse(scoreText);
+      if (score == null || score < 0 || score > 100) {
+        UIHelpers.showWarning(
+          title: 'Nilai tidak valid',
+          message: 'Nilai harus berupa angka 0 sampai 100.',
+        );
+        return;
+      }
+    }
 
-  Widget _buildResumeKegawatdaruratanForm(FormModel form) {
-    final data = form.data ?? {};
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Resume Kegawatdaruratan Psikiatri',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        if (data['identitas'] != null) ...[
-          const Text(
-            'Identitas',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField(
-            'Nama Lengkap',
-            data['identitas']['nama_lengkap'],
-          ),
-          _buildReadOnlyField('Umur', data['identitas']['umur']),
-          _buildReadOnlyField(
-            'Jenis Kelamin',
-            data['identitas']['jenis_kelamin'],
-          ),
-          _buildReadOnlyField('Alamat', data['identitas']['alamat']),
-          _buildReadOnlyField(
-            'Tanggal Masuk',
-            data['identitas']['tanggal_masuk'],
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (data['renpra'] != null) ...[
-          const Text(
-            'Renpra (Rencana Perawatan)',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField('Diagnosis', data['renpra']['diagnosis']),
-          _buildReadOnlyField('Tujuan', data['renpra']['tujuan']),
-          _buildReadOnlyField('Kriteria', data['renpra']['kriteria']),
-          _buildReadOnlyField('Rasional', data['renpra']['rasional']),
-          _buildReadOnlyField('Evaluasi', data['renpra']['evaluasi']),
-          const SizedBox(height: 16),
-        ],
-        // Add more sections as needed
-      ],
-    );
-  }
-
-  Widget _buildResumePoliklinikForm(FormModel form) {
-    final data = form.data ?? {};
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Resume Poliklinik',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        if (data['section_1'] != null) ...[
-          const Text(
-            'Identitas Klien',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField(
-            'Nama Lengkap',
-            data['section_1']['nama_lengkap'],
-          ),
-          _buildReadOnlyField('Umur', data['section_1']['umur']),
-          _buildReadOnlyField(
-            'Jenis Kelamin',
-            data['section_1']['jenis_kelamin'],
-          ),
-          _buildReadOnlyField(
-            'Status Perkawinan',
-            data['section_1']['status_perkawinan'],
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (data['section_9'] != null) ...[
-          const Text(
-            'Renpra (Rencana Perawatan)',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField('Diagnosis', data['section_9']['diagnosis']),
-          _buildReadOnlyField('Tujuan', data['section_9']['tujuan']),
-          _buildReadOnlyField('Kriteria', data['section_9']['kriteria']),
-          _buildReadOnlyField('Rasional', data['section_9']['rasional']),
-          const SizedBox(height: 16),
-        ],
-        // Add more sections as needed
-      ],
-    );
-  }
-
-  Widget _buildSapForm(FormModel form) {
-    final data = form.data ?? {};
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Form SAP (Satuan Acara Penyuluhan)',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        if (data['identitas'] != null) ...[
-          const Text(
-            'Identitas Kegiatan',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField('Topik', data['identitas']['topik']),
-          _buildReadOnlyField('Sasaran', data['identitas']['sasaran']),
-          _buildReadOnlyField('Waktu', data['identitas']['waktu']),
-          _buildReadOnlyField('Tempat', data['identitas']['tempat']),
-          const SizedBox(height: 16),
-        ],
-        if (data['tujuan'] != null) ...[
-          const Text('Tujuan', style: TextStyle(fontWeight: FontWeight.bold)),
-          _buildReadOnlyField('Tujuan Umum', data['tujuan']['umum']),
-          _buildReadOnlyField('Tujuan Khusus', data['tujuan']['khusus']),
-          const SizedBox(height: 16),
-        ],
-        if (data['renpra'] != null) ...[
-          const Text(
-            'Renpra (Opsional)',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField('Diagnosis', data['renpra']['diagnosis']),
-          _buildReadOnlyField('Tujuan', data['renpra']['tujuan']),
-          _buildReadOnlyField('Kriteria', data['renpra']['kriteria']),
-          _buildReadOnlyField('Rasional', data['renpra']['rasional']),
-          const SizedBox(height: 16),
-        ],
-        // Add more sections as needed
-      ],
-    );
-  }
-
-  Widget _buildCatatanTambahanForm(FormModel form) {
-    final data = form.data ?? {};
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Catatan Tambahan',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        if (data['catatan'] != null) ...[
-          const Text('Catatan', style: TextStyle(fontWeight: FontWeight.bold)),
-          _buildReadOnlyField('Isi Catatan', data['catatan']['isi_catatan']),
-          const SizedBox(height: 16),
-        ],
-        if (data['catatan'] != null && data['catatan']['renpra'] != null) ...[
-          const Text(
-            'Renpra (Opsional)',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildReadOnlyField(
-            'Diagnosis',
-            data['catatan']['renpra']['diagnosis'],
-          ),
-          _buildReadOnlyField('Tujuan', data['catatan']['renpra']['tujuan']),
-          _buildReadOnlyField(
-            'Kriteria',
-            data['catatan']['renpra']['kriteria'],
-          ),
-          _buildReadOnlyField(
-            'Rasional',
-            data['catatan']['renpra']['rasional'],
-          ),
-          const SizedBox(height: 16),
-        ],
-        // Add more sections as needed
-      ],
-    );
-  }
-
-  Widget _buildGenericForm(FormModel form) {
-    final data = form.data ?? {};
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Tipe Form: ${form.type}',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Form Data: ${data.toString()}',
-        ), // Fallback for unknown form types
-      ],
-    );
-  }
-
-  Widget _buildReadOnlyField(String label, dynamic value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(_formatFieldValue(label, value) ?? '-'),
-          ),
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: Text(status == 'approved' ? 'Setujui formulir?' : 'Minta revisi?'),
+        content: Text(status == 'approved'
+            ? 'Formulir ini akan ditandai disetujui.'
+            : 'Mahasiswa akan menerima ${_pending.length + (overall.isEmpty ? 0 : 1)} komentar untuk diperbaiki.'),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Batal')),
+          FilledButton(
+              onPressed: () => Get.back(result: true),
+              child: Text(status == 'approved' ? 'Setujui' : 'Kirim revisi')),
         ],
       ),
     );
+    if (confirmed != true) return;
+
+    _logger.userInteraction(
+      'Konfirmasi review form',
+      page: 'FormReviewView',
+      data: {
+        'formId': formId,
+        'status': status,
+        'sectionComments': _pending.length,
+      },
+    );
+
+    setState(() => _submitting = true);
+    final ok = await Get.find<ReviewController>().reviewForm(
+      formId,
+      status,
+      overall.isEmpty ? null : overall,
+      sectionComments: status == 'revised'
+          ? [
+              for (final e in _pending.entries)
+                {'section': e.key, 'comment': e.value},
+            ]
+          : const [],
+      score: score,
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (!ok) return;
+
+    if (status == 'approved') {
+      UIHelpers.showSuccess(title: 'Sukses', message: 'Formulir disetujui');
+    } else {
+      UIHelpers.showInfo(
+          title: 'Terkirim', message: 'Formulir dikembalikan untuk revisi');
+    }
+    Get.back();
+  }
+
+  Widget _fieldRow(String label, dynamic value) {
+    final theme = Theme.of(context);
+    final text = _formatFieldValue(label, value);
+    final empty = text == null || text.trim().isEmpty;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label.toUpperCase(), style: theme.textTheme.labelSmall),
+        const SizedBox(height: 3),
+        Text(empty ? '-' : text,
+            style: theme.textTheme.bodyMedium?.copyWith(
+                color: empty ? theme.colorScheme.onSurfaceVariant : null)),
+      ]),
+    );
+  }
+
+  Widget _sectionCard(FormModel form, _Section sec) {
+    final theme = Theme.of(context);
+    final data = form.data ?? {};
+    final earlier = form.reviewComments.where((c) => c.section == sec.key);
+    final mine = _pending[sec.key];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DsCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(
+                child: Text(sec.title, style: theme.textTheme.titleMedium)),
+            if (_status == 'submitted')
+              DsPill(
+                icon: mine == null
+                    ? Icons.add_comment_outlined
+                    : Icons.edit_outlined,
+                label: mine == null ? 'Komentari' : 'Ubah',
+                onTap: () => _editComment(sec.key, sec.title),
+              ),
+          ]),
+          const SizedBox(height: 14),
+          for (final f in sec.fields) _fieldRow(f.label, _dig(data, f.path)),
+          for (final c in earlier) _commentBubble(c.comment,
+              label: c.isResolved ? 'Komentar sebelumnya · selesai' : 'Komentar sebelumnya',
+              muted: true),
+          if (mine != null) _commentBubble(mine, label: 'Komentar Anda'),
+        ]),
+      ),
+    );
+  }
+
+  Widget _commentBubble(String text, {required String label, bool muted = false}) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: muted ? theme.colorScheme.surfaceContainerHighest : AppColors.limeSoft,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+                color: muted ? null : AppColors.ink)),
+        const SizedBox(height: 3),
+        Text(text,
+            style: TextStyle(
+                color: muted ? theme.colorScheme.onSurface : AppColors.ink)),
+      ]),
+    );
+  }
+
+  List<_Section> _sectionsFor(FormModel form) {
+    final spec = _specs[form.type];
+    final data = form.data ?? {};
+    if (spec != null) {
+      // Hanya tampilkan bagian yang punya data.
+      return [
+        for (final s in spec)
+          if (s.fields.any((f) => _dig(data, f.path) != null)) s,
+      ];
+    }
+    return _genericSections(data);
   }
 
   String? _formatFieldValue(String label, dynamic value) {
@@ -553,144 +539,150 @@ class _FormReviewViewState extends State<FormReviewView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Review Form'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Review formulir'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'Export PDF',
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Ekspor PDF',
             onPressed: () => formController.exportFormToPdf(formId),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Form content in read-only mode
-            Expanded(
-              child: FutureBuilder<FormModel?>(
-                future: formController.getFormById(formId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError || snapshot.data == null) {
-                    return const Center(child: Text('Gagal memuat form'));
-                  }
-
-                  final form = snapshot.data!;
-                  return SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFormContent(form),
-                        const SizedBox(height: 24),
-                        if (form.documentations != null &&
-                            form.documentations!.isNotEmpty) ...[
-                          const Text(
-                            'Lampiran Dokumentasi',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          ...form.documentations!.map(
-                            (doc) => Card(
-                              child: ListTile(
-                                leading: Icon(
-                                  doc.type == 'foto'
-                                      ? Icons.image
-                                      : Icons.file_present,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                                title: Text(doc.filePath.split('/').last),
-                                subtitle: Text(
-                                  'Tipe: ${doc.type.capitalizeFirst}',
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.download),
-                                  onPressed: () {
-                                    // Implement specific download for docs if needed
-                                    // Or launch URL if it is a public URL
-                                    // For now just show info
-                                    Get.snackbar(
-                                      'Info',
-                                      'Fitur download lampiran belum tersedia',
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                      ],
+      body: FutureBuilder<FormModel?>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final form = snap.data;
+          if (snap.hasError || form == null) {
+            return const DsEmpty(
+                icon: Icons.error_outline_rounded,
+                title: 'Gagal memuat formulir',
+                message: 'Tarik untuk mencoba lagi atau kembali.');
+          }
+          final sections = _sectionsFor(form);
+          final general =
+              form.reviewComments.where((c) => c.section == null).toList();
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                children: [
+                  DsCard(
+                    child: Row(children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                            color: AppColors.lime,
+                            borderRadius: BorderRadius.circular(16)),
+                        child: Icon(FormTypes.icon(form.type),
+                            color: AppColors.ink),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(FormTypes.title(form.type),
+                                  style: theme.textTheme.titleMedium),
+                              const SizedBox(height: 3),
+                              Text(
+                                  '${form.user?.name ?? 'Mahasiswa'} · ${form.patient?.name ?? 'Pasien'}',
+                                  style: theme.textTheme.bodySmall),
+                              const SizedBox(height: 8),
+                              DsStatusPill.raw(_status),
+                            ]),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 16),
+                  if (sections.isEmpty)
+                    const DsEmpty(
+                        icon: Icons.description_outlined,
+                        title: 'Belum ada isi untuk ditampilkan')
+                  else
+                    for (final s in sections) _sectionCard(form, s),
+                  if (form.documentations != null &&
+                      form.documentations!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    const DsSectionTitle('Lampiran'),
+                    for (final doc in form.documentations!)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: DsCard(
+                          radius: AppRadius.md,
+                          padding: const EdgeInsets.all(12),
+                          child: Row(children: [
+                            Icon(doc.type == 'foto'
+                                ? Icons.image_outlined
+                                : Icons.attach_file_rounded),
+                            const SizedBox(width: 12),
+                            Expanded(
+                                child: Text(doc.filePath.split('/').last,
+                                    overflow: TextOverflow.ellipsis)),
+                          ]),
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 8),
+                  const DsSectionTitle('Komentar umum'),
+                  for (final c in general)
+                    _commentBubble(c.comment,
+                        label: c.isResolved ? 'Sebelumnya · selesai' : 'Sebelumnya',
+                        muted: true),
+                  if (_status == 'submitted') ...[
+                    TextField(
+                      controller: _commentController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                          hintText: 'Ringkasan penilaian untuk mahasiswa…'),
                     ),
-                  );
-                },
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _scoreController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 3,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: 'Nilai (0–100, opsional)',
+                        counterText: '',
+                        prefixIcon: Icon(Icons.grade_outlined),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            // Comment section
-            const Text(
-              'Komentar Review',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextField(
-              controller: _commentController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Tambahkan komentar untuk revisi...',
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: Obx(
-                    () => ElevatedButton(
-                      onPressed: _status.value == 'submitted'
-                          ? () => _reviewForm('revised')
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                      ),
-                      child: const Text('Minta Revisi'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Obx(
-                    () => ElevatedButton(
-                      onPressed: _status.value == 'submitted'
-                          ? () => _reviewForm('approved')
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                      ),
-                      child: const Text('Setujui'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          );
+        },
       ),
+      bottomNavigationBar: _status != 'submitted'
+          ? null
+          : DsStickyCta(
+              child: Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _canReview ? () => _reviewForm('revised') : null,
+                    child: Text(_pending.isEmpty
+                        ? 'Minta revisi'
+                        : 'Revisi (${_pending.length})'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _canReview ? () => _reviewForm('approved') : null,
+                    child: const Text('Setujui'),
+                  ),
+                ),
+              ]),
+            ),
     );
-  }
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
   }
 }

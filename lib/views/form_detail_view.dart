@@ -3,6 +3,12 @@ import 'package:get/get.dart';
 import '../controllers/form_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../models/form_model.dart';
+import '../models/review_comment_model.dart';
+import '../services/review_service.dart';
+import '../theme/app_theme.dart';
+import '../utils/form_types.dart';
+import '../widgets/ds/ds.dart';
+import 'dart:convert';
 import '../services/logger_service.dart';
 import '../services/role_guard.dart';
 import '../utils/ui_helpers.dart';
@@ -117,142 +123,124 @@ class _FormDetailViewState extends State<FormDetailView> {
     }
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'submitted':
-        return Colors.blue;
-      case 'approved':
-        return Colors.green;
-      case 'revised':
-        return Colors.red;
-      default:
-        return Colors.grey;
+  String _humanize(String key) {
+    final t = key.replaceAll('_', ' ').trim();
+    return t.isEmpty ? key : t[0].toUpperCase() + t.substring(1);
+  }
+
+  Future<void> _toggleResolved(ReviewComment c) async {
+    try {
+      final res = await ReviewService.toggleResolved(c.id);
+      if (res.statusCode != 200) {
+        UIHelpers.showError(
+            title: 'Gagal', message: 'Tidak dapat memperbarui komentar');
+        return;
+      }
+      final updated =
+          ReviewComment.fromJson(json.decode(res.body) as Map<String, dynamic>);
+      if (!mounted) return;
+      setState(() {
+        form = form.copyWith(reviewComments: [
+          for (final x in form.reviewComments) x.id == c.id ? updated : x,
+        ]);
+      });
+    } catch (e) {
+      _logger.error('Gagal mengubah status komentar', error: e);
+      UIHelpers.showError(title: 'Gagal', message: 'Periksa koneksi Anda');
     }
   }
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'submitted':
-        return 'Menunggu Review';
-      case 'approved':
-        return 'Disetujui';
-      case 'revised':
-        return 'Perlu Revisi';
-      default:
-        return status;
-    }
-  }
-
-  String _getFormTitle(String type) {
-    switch (type) {
-      case 'pengkajian':
-        return 'Pengkajian Kesehatan Jiwa';
-      case 'resume_kegawatdaruratan':
-        return 'Resume Kegawatdaruratan Psikiatri';
-      case 'resume_poliklinik':
-        return 'Resume Poliklinik';
-      case 'sap':
-        return 'SAP (Satuan Acara Penyuluhan)';
-      case 'catatan_tambahan':
-        return 'Catatan Tambahan';
-      default:
-        return type;
-    }
+  Widget _commentTile(ReviewComment c) {
+    final theme = Theme.of(context);
+    final canResolve = !isLecturer;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: c.isResolved
+            ? theme.colorScheme.surfaceContainerHighest
+            : AppColors.limeSoft,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              ((c.reviewerName ?? 'Dosen') +
+                      (c.isResolved ? ' · selesai' : ''))
+                  .toUpperCase(),
+              style: theme.textTheme.labelSmall
+                  ?.copyWith(color: c.isResolved ? null : AppColors.ink),
+            ),
+            const SizedBox(height: 3),
+            Text(c.comment,
+                style: TextStyle(
+                    color: c.isResolved
+                        ? theme.colorScheme.onSurfaceVariant
+                        : AppColors.ink,
+                    decoration:
+                        c.isResolved ? TextDecoration.lineThrough : null)),
+          ]),
+        ),
+        if (canResolve)
+          IconButton(
+            tooltip: c.isResolved ? 'Buka kembali' : 'Tandai sudah diperbaiki',
+            icon: Icon(c.isResolved
+                ? Icons.check_circle_rounded
+                : Icons.radio_button_unchecked_rounded),
+            color: c.isResolved ? AppColors.success : AppColors.ink,
+            onPressed: () => _toggleResolved(c),
+          ),
+      ]),
+    );
   }
 
   List<Widget> _buildFormDataCards() {
+    final theme = Theme.of(context);
     final cards = <Widget>[];
     form.data!.forEach((key, value) {
       if (value == null) return;
+      final comments = form.reviewComments.where((c) => c.section == key);
 
-      String title = _formatSectionTitle(key);
       Widget content;
-
       if (value is Map) {
         content = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: value.entries.map((e) {
-            if (e.value == null || e.value.toString().isEmpty) {
-              return const SizedBox.shrink();
-            }
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      _formatFieldName(e.key),
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      e.value.toString(),
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        );
-      } else {
-        content = Text(
-          value.toString(),
-          style: TextStyle(color: Colors.grey[700]),
-        );
-      }
-
-      cards.add(
-        Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+          children: [
+            for (final e in value.entries)
+              if (e.value != null && e.value.toString().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_humanize(e.key.toString()).toUpperCase(),
+                          style: theme.textTheme.labelSmall),
+                      const SizedBox(height: 3),
+                      Text(e.value.toString()),
+                    ],
                   ),
                 ),
-                const Divider(height: 16),
-                content,
-              ],
-            ),
-          ),
+          ],
+        );
+      } else {
+        content = Text(value.toString());
+      }
+
+      cards.add(Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: DsCard(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(_humanize(key), style: theme.textTheme.titleMedium),
+            const SizedBox(height: 14),
+            content,
+            for (final c in comments) _commentTile(c),
+          ]),
         ),
-      );
+      ));
     });
     return cards;
-  }
-
-  String _formatSectionTitle(String key) {
-    return key
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map(
-          (word) =>
-              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1),
-        )
-        .join(' ');
-  }
-
-  String _formatFieldName(String key) {
-    return key
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map(
-          (word) =>
-              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1),
-        )
-        .join(' ');
   }
 
   Future<void> _updateStatus(String status) async {
@@ -267,13 +255,11 @@ class _FormDetailViewState extends State<FormDetailView> {
       comments: _commentController.text,
     );
 
-    // Update local form object to reflect changes
     if (!mounted) return;
     setState(() {
       form = form.copyWith(status: status, comments: _commentController.text);
     });
 
-    if (!mounted) return;
     UIHelpers.showSuccess(
       title: 'Sukses',
       message: 'Status form berhasil diperbarui',
@@ -282,265 +268,202 @@ class _FormDetailViewState extends State<FormDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final general = form.reviewComments.where((c) => c.section == null).toList();
+    final open = form.reviewComments.where((c) => !c.isResolved).length;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detail Form'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
+      appBar: AppBar(title: const Text('Detail formulir')),
       body: RefreshIndicator(
+        color: AppColors.ink,
+        backgroundColor: AppColors.lime,
         onRefresh: _refreshFormData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Section
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _getFormTitle(form.type),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+              children: [
+                DsCard(
+                  child: Row(children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                          color: AppColors.lime,
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Icon(FormTypes.icon(form.type),
+                          color: AppColors.ink),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(FormTypes.title(form.type),
+                                style: theme.textTheme.titleMedium),
+                            const SizedBox(height: 4),
+                            Text(
+                                'Diperbarui ${form.updatedAt.toString().substring(0, 16)}',
+                                style: theme.textTheme.bodySmall),
+                            const SizedBox(height: 8),
+                            Row(children: [
+                              DsStatusPill.raw(form.status),
+                              if (form.score != null) ...[
+                                const SizedBox(width: 8),
+                                DsBadge('Nilai ${form.score}'),
+                              ],
+                            ]),
+                          ]),
+                    ),
+                  ]),
+                ),
+                if (!isLecturer && form.status == 'revised' && open > 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.lime,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.replay_rounded, color: AppColors.ink),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '$open komentar dosen perlu Anda perbaiki. Tandai yang sudah selesai.',
+                          style: const TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w700),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
+                    ]),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                const DsSectionTitle('Isi formulir'),
+                if (form.data != null && form.data!.isNotEmpty)
+                  ..._buildFormDataCards()
+                else
+                  const DsEmpty(
+                      icon: Icons.description_outlined,
+                      title: 'Tidak ada data formulir'),
+                if (_genogramAvailable) ...[
+                  const SizedBox(height: 8),
+                  const DsSectionTitle('Genogram'),
+                  DsCard(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Status: ',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(
-                                form.status,
-                              ).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: _getStatusColor(form.status),
+                          Wrap(spacing: 8, runSpacing: 8, children: [
+                            DsPill(
+                                icon: Icons.people_outline_rounded,
+                                label: '${_genogramMemberCount()} anggota'),
+                            DsPill(
+                                icon: Icons.share_outlined,
+                                label: '${_genogramConnectionCount()} hubungan'),
+                          ]),
+                          const SizedBox(height: 14),
+                          Row(children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _openGenogram,
+                                child: const Text('Lihat'),
                               ),
                             ),
-                            child: Text(
-                              _getStatusText(form.status),
-                              style: TextStyle(
-                                color: _getStatusColor(form.status),
-                                fontWeight: FontWeight.bold,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _previewSvg,
+                                child: const Text('Pratinjau SVG'),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tanggal Dibuat: ${form.createdAt.toString().substring(0, 16)}',
-                      ),
-                      Text(
-                        'Terakhir Diperbarui: ${form.updatedAt.toString().substring(0, 16)}',
-                      ),
-                    ],
+                          ]),
+                        ]),
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Form Data Preview
-              const Text(
-                'Data Form',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              if (form.data != null && form.data!.isNotEmpty)
-                ..._buildFormDataCards()
-              else
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Center(
-                      child: Text(
-                        'Tidak ada data form tersedia',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
+                ],
+                const SizedBox(height: 20),
+                const DsSectionTitle('Komentar & persetujuan'),
+                if (isLecturer) ...[
+                  TextField(
+                    controller: _commentController,
+                    decoration: const InputDecoration(
+                      labelText: 'Komentar dosen',
+                      hintText: 'Tambahkan catatan atau revisi di sini…',
                     ),
+                    maxLines: 3,
                   ),
-                ),
-              const SizedBox(height: 24),
-              if (_genogramAvailable) ...[
-                const Text(
-                  'Genogram',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Anggota: ${_genogramMemberCount()}'),
-                              const SizedBox(height: 6),
-                              Text('Hubungan: ${_genogramConnectionCount()}'),
-                            ],
-                          ),
-                        ),
-                        FilledButton.tonal(
-                          onPressed: () {
-                            // open builder in read-only mode
-                            final struct =
-                                form.genogram?.structure ??
-                                (form.data?['genogram']?['structure'] ??
-                                    form.data?['section_9']?['structure']);
-                            final notes =
-                                form.genogram?.notes ??
-                                (form.data?['genogram']?['notes'] ??
-                                    form.data?['section_9']?['notes']) ??
-                                '';
-                            Get.to(
-                              () => GenogramBuilderView(
-                                initialData: {
-                                  'structure': struct,
-                                  'notes': notes,
-                                },
-                              ),
-                              arguments: {'readOnly': true},
-                            );
-                          },
-                          child: const Text('Lihat Genogram'),
-                        ),
-                        const SizedBox(width: 12),
-                        FilledButton.tonal(
-                          onPressed: () async {
-                            // fetch svg and show preview modal
-                            final svg = await formController.fetchGenogramSvg(
-                              form.id,
-                            );
-                            if (svg == null) {
-                              UIHelpers.showError(
-                                title: 'Not Available',
-                                message: 'Genogram preview is not available',
-                              );
-                              return;
-                            }
-                            Get.dialog(
-                              AlertDialog(
-                                title: const Text('Genogram Preview'),
-                                content: SizedBox(
-                                  width: 400,
-                                  height: 200,
-                                  child: SvgPicture.string(
-                                    svg,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Get.back(),
-                                    child: const Text('Tutup'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          child: const Text('Pratinjau SVG'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Lecturer Feedback Section
-              const Text(
-                'Komentar & Persetujuan',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              if (isLecturer) ...[
-                TextField(
-                  controller: _commentController,
-                  decoration: const InputDecoration(
-                    labelText: 'Komentar Dosen',
-                    border: OutlineInputBorder(),
-                    hintText: 'Tambahkan catatan atau revisi disini...',
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
+                  const SizedBox(height: 16),
+                  Row(children: [
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: OutlinedButton(
                         onPressed: () => _updateStatus('revised'),
-                        icon: const Icon(Icons.warning, color: Colors.white),
-                        label: const Text('Minta Revisi'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                        ),
+                        child: const Text('Minta revisi'),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: FilledButton(
                         onPressed: () => _updateStatus('approved'),
-                        icon: const Icon(
-                          Icons.check_circle,
-                          color: Colors.white,
-                        ),
-                        label: const Text('Setujui'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
+                        child: const Text('Setujui'),
                       ),
                     ),
-                  ],
-                ),
-              ] else ...[
-                // Student View of Comments
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Catatan Dosen:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        form.comments != null && form.comments!.isNotEmpty
-                            ? form.comments!
-                            : 'Belum ada komentar.',
-                        style: const TextStyle(fontStyle: FontStyle.italic),
-                      ),
-                    ],
-                  ),
-                ),
+                  ]),
+                ] else ...[
+                  if (general.isEmpty &&
+                      (form.comments == null || form.comments!.isEmpty))
+                    Text('Belum ada komentar.', style: theme.textTheme.bodySmall),
+                  for (final c in general) _commentTile(c),
+                  if (general.isEmpty &&
+                      form.comments != null &&
+                      form.comments!.isNotEmpty)
+                    DsCard(child: Text(form.comments!)),
+                ],
               ],
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _openGenogram() {
+    final struct = form.genogram?.structure ??
+        (form.data?['genogram']?['structure'] ??
+            form.data?['section_9']?['structure']);
+    final notes = form.genogram?.notes ??
+        (form.data?['genogram']?['notes'] ??
+            form.data?['section_9']?['notes']) ??
+        '';
+    Get.to(
+      () => GenogramBuilderView(
+        initialData: {'structure': struct, 'notes': notes},
+      ),
+      arguments: {'readOnly': true},
+    );
+  }
+
+  Future<void> _previewSvg() async {
+    final svg = await formController.fetchGenogramSvg(form.id);
+    if (svg == null) {
+      UIHelpers.showError(
+        title: 'Tidak tersedia',
+        message: 'Pratinjau genogram tidak tersedia',
+      );
+      return;
+    }
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Pratinjau genogram'),
+        content: SizedBox(
+          width: 400,
+          height: 240,
+          child: SvgPicture.string(svg, fit: BoxFit.contain),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Tutup')),
+        ],
       ),
     );
   }

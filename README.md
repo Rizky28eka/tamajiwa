@@ -18,7 +18,13 @@ A mobile app and API for **nursing students and their lecturers** to document pa
 - **Forms:** assessment (*pengkajian*), communication strategy (SAP), group activity therapy (TAK), outpatient and emergency resumes, and extra notes. Photos and materials can be attached.
 - **Genogram builder:** build a family genogram in the app and render it as SVG.
 - **Nursing libraries:** diagnoses and interventions maintained by lecturers.
-- **Review and PDF:** lecturers review submitted forms; forms can be exported to PDF.
+- **Review and PDF:** lecturers review submitted forms from their own students only; forms can be exported to PDF.
+- **Section comments:** lecturers comment on specific form sections when requesting a revision; students tick off comments once fixed.
+- **In-app notifications:** a bell with an unread badge tells lecturers about new submissions and students about approvals and revision requests. There is no push delivery; the list refreshes when the dashboard is pulled down or reopened.
+- **Scores:** lecturers can give a 0–100 score when reviewing; students see it on the form and lecturers see each student's average.
+- **Student progress:** lecturers see how many of the seven form types each student has completed.
+- **Draft autosave:** new form input is kept on the device and restored when the form is reopened.
+- **Design:** light and dark themes with shared components in `lib/widgets/ds/`.
 - **Password reset:** request and reset by email link.
 
 ## Screenshots
@@ -77,11 +83,13 @@ flutter pub get
 flutter run
 ```
 
-The app talks to `http://127.0.0.1:8000/api` by default (`10.0.2.2` on the Android emulator). To use another server:
+#### Pointing the app at a server
 
-```bash
-flutter run --dart-define=API_BASE_URL=https://your-server.example/api
-```
+On first launch the app asks for the API address, so end users only need to paste it in. It checks `GET {address}/health-check`, saves the address on the device, and then shows the sign-in screen. The address can be changed later from the server chip at the bottom of the sign-in screen. Input is tidied for you: `api.example.id` becomes `https://api.example.id/api`, and bare IPs or `localhost` use `http://`.
+
+Order of precedence: address saved in the app, then `--dart-define=API_BASE_URL=https://your-server.example/api` at build time, then the local default (`http://127.0.0.1:8000/api`, or `10.0.2.2` on the Android emulator). Setting a `--dart-define` skips the first-launch prompt.
+
+Plain `http://` addresses are blocked by Android release builds; use `https://` for anything but local development.
 
 ## Testing
 

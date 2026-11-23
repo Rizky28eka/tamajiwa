@@ -30,6 +30,9 @@ import 'bindings/auth_binding.dart';
 import 'bindings/patient_binding.dart';
 import 'bindings/form_binding.dart';
 import 'bindings/main_shell_binding.dart';
+import 'views/student_progress_view.dart';
+import 'views/notifications_view.dart';
+import 'views/server_setup_view.dart';
 
 class AppPages {
   static final pages = [
@@ -157,6 +160,21 @@ class AppPages {
       name: '/patient-selection',
       page: () => PatientSelectionView(),
       binding: PatientBinding(), // Reuse PatientBinding
+    ),
+    GetPage(
+      name: AppRoutes.serverSetup,
+      page: () => const ServerSetupView(),
+      binding: null,
+    ),
+    GetPage(
+      name: '/notifications',
+      page: () => const NotificationsView(),
+      binding: null,
+    ),
+    GetPage(
+      name: '/patients-for-student',
+      page: () => const StudentProgressView(),
+      binding: null,
     ),
   ];
 }

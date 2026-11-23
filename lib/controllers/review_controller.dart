@@ -59,13 +59,25 @@ class ReviewController extends GetxController {
     }
   }
 
-  Future<void> reviewForm(int formId, String status, String? comment) async {
+  Future<bool> reviewForm(
+    int formId,
+    String status,
+    String? comment, {
+    List<Map<String, String?>> sectionComments = const [],
+    int? score,
+  }) async {
     _logger.info('Reviewing form', context: {'formId': formId, 'status': status, 'comment': comment ?? 'No comment'});
     _isLoading.value = true;
     _errorMessage.value = '';
 
     try {
-      final response = await ReviewService.reviewForm(formId, status, comment);
+      final response = await ReviewService.reviewForm(
+        formId,
+        status,
+        comment,
+        sectionComments: sectionComments,
+        score: score,
+      );
 
       _logger.network(
         method: 'POST',
@@ -78,17 +90,19 @@ class ReviewController extends GetxController {
       if (response.statusCode == 200) {
         _logger.info('Form reviewed successfully', context: {'formId': formId, 'status': status});
         await fetchSubmittedForms(); // Refresh the list after review
-        Get.snackbar('Success', 'Form reviewed successfully');
+        return true;
       } else {
         final errorData = json.decode(response.body);
         _errorMessage.value = errorData['message'] ?? 'Failed to review form';
         _logger.error('Failed to review form', context: {'formId': formId, 'status': status, 'message': _errorMessage.value});
         Get.snackbar('Error', _errorMessage.value);
+        return false;
       }
     } catch (e, stackTrace) {
       _errorMessage.value = 'Error reviewing form: $e';
       _logger.error('Error reviewing form', error: e, stackTrace: stackTrace, context: {'formId': formId, 'status': status});
       Get.snackbar('Error', _errorMessage.value);
+      return false;
     } finally {
       _isLoading.value = false;
     }

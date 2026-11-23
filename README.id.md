@@ -18,7 +18,13 @@ Aplikasi mobile dan API untuk **mahasiswa keperawatan dan dosennya** mendokument
 - **Formulir:** pengkajian, strategi pelaksanaan komunikasi (SAP), terapi aktivitas kelompok (TAK), resume poliklinik dan kegawatdaruratan, serta catatan tambahan. Foto dan materi dapat dilampirkan.
 - **Pembuat genogram:** menyusun genogram keluarga di aplikasi dan menampilkannya sebagai SVG.
 - **Pustaka keperawatan:** diagnosis dan intervensi yang dikelola dosen.
-- **Review dan PDF:** dosen mereviu formulir yang diajukan; formulir dapat diekspor ke PDF.
+- **Review dan PDF:** dosen mereviu formulir yang diajukan dan hanya melihat mahasiswa bimbingannya; formulir dapat diekspor ke PDF.
+- **Komentar per bagian:** dosen memberi komentar pada bagian formulir tertentu saat meminta revisi; mahasiswa menandai komentar yang sudah diperbaiki.
+- **Notifikasi dalam aplikasi:** lonceng dengan badge belum dibaca memberi tahu dosen soal pengajuan baru, dan mahasiswa soal persetujuan atau permintaan revisi. Tidak ada push; daftar diperbarui saat dashboard ditarik atau dibuka lagi.
+- **Nilai:** dosen dapat memberi nilai 0–100 saat mereviu; mahasiswa melihatnya di formulir dan dosen melihat rata-rata tiap mahasiswa.
+- **Progres mahasiswa:** dosen melihat kelengkapan tujuh jenis formulir tiap mahasiswa bimbingan.
+- **Draf otomatis:** isian formulir baru tersimpan di perangkat dan dipulihkan saat dibuka lagi.
+- **Desain:** tema terang dan gelap dengan komponen bersama di `lib/widgets/ds/`.
 - **Reset password:** permintaan dan reset lewat tautan email.
 
 ## Tangkapan layar
@@ -77,11 +83,13 @@ flutter pub get
 flutter run
 ```
 
-Aplikasi memakai `http://127.0.0.1:8000/api` secara bawaan (`10.0.2.2` di emulator Android). Untuk server lain:
+#### Mengarahkan aplikasi ke server
 
-```bash
-flutter run --dart-define=API_BASE_URL=https://server-anda.example/api
-```
+Saat pertama dibuka, aplikasi meminta alamat API, jadi pengguna akhir cukup menempelkannya. Aplikasi menguji `GET {alamat}/health-check`, menyimpan alamat di perangkat, lalu menampilkan layar masuk. Alamat bisa diubah lagi lewat chip server di bagian bawah layar masuk. Input dirapikan otomatis: `api.contoh.id` menjadi `https://api.contoh.id/api`, dan IP atau `localhost` memakai `http://`.
+
+Urutan prioritas: alamat yang disimpan di aplikasi, lalu `--dart-define=API_BASE_URL=https://server-anda.example/api` saat build, lalu bawaan lokal (`http://127.0.0.1:8000/api`, atau `10.0.2.2` di emulator Android). Bila `--dart-define` diisi, permintaan alamat saat pertama dibuka dilewati.
+
+Alamat `http://` biasa diblokir pada build rilis Android; gunakan `https://` kecuali untuk pengembangan lokal.
 
 ## Pengujian
 

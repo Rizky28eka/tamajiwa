@@ -22,6 +22,7 @@ class Form extends Model
         'user_id',
         'patient_id',
         'status',
+        'score',
         'data',
         'formable_type',
         'formable_id',
@@ -74,6 +75,14 @@ class Form extends Model
     public function revisions()
     {
         return $this->hasMany(Revision::class);
+    }
+
+    /**
+     * Komentar review per bagian formulir.
+     */
+    public function reviewComments()
+    {
+        return $this->hasMany(ReviewComment::class);
     }
 
     /**
