@@ -48,3 +48,7 @@ app.*.map.json
 *.test
 *.md
 *.txt
+# Secrets and data: never commit
+*.zip
+backend/.env
+backend/database/*.sqlite
