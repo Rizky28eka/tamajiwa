@@ -1,30 +1,20 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class ApiConfig {
-  // Base URL for the API - can be changed based on environment
-  // NOTE: If you encounter "Failed to fetch" errors with antivirus (Kaspersky):
-  // 1. Use localhost instead of IP: 'http://localhost:8000/api'
-  // 2. Add exception in antivirus settings for this app
-  // 3. Or temporarily disable web protection during development
-  // static const String baseUrl =
-  //     'https://tamajiwa.bilcode.id/'; // Update this with your backend URL
-  static const String baseUrl =
-      'https://tamajiwa.bilcode.id/api'; // Update this with your backend URL
+  /// Alamat API diberikan saat build, bukan ditulis di kode:
+  ///
+  ///   flutter run --dart-define=API_BASE_URL=https://api.contoh.id/api
+  ///
+  /// Tanpa define, aplikasi memakai backend lokal (`php artisan serve`):
+  /// emulator Android lewat 10.0.2.2, simulator iOS dan platform lain lewat 127.0.0.1.
+  static const String _fromEnvironment = String.fromEnvironment('API_BASE_URL');
 
-  // Environment-based configurations
-  static const String developmentBaseUrl = 'https://tamajiwa.bilcode.id/api';
-  // static const String developmentBaseUrl = 'http://[nyesuain ip ente]:8000/acurl -X GET https://tamajiwa.bilcode.id//loginpi';
-  static const String localhostBaseUrl =
-      'http://127.0.0.1:8000/api'; // Use this if antivirus blocks IP
-  static const String productionBaseUrl = 'https://tamajiwa.bilcode.id/api';
-  static const String stagingBaseUrl = 'https://tamajiwa.bilcode.id/api';
-
-  // Current environment - can be changed based on build flavor
   static String get currentBaseUrl {
-    // In a real application, you might check for debug mode or build flavor
-    // For now, we'll use the development URL
-    // TIP: Change to localhostBaseUrl if you get connection errors
-    return const bool.fromEnvironment('dart.vm.product')
-        ? productionBaseUrl
-        : developmentBaseUrl;
+    if (_fromEnvironment.isNotEmpty) return _fromEnvironment;
+    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000/api';
+    return 'http://127.0.0.1:8000/api';
   }
 
   // API endpoints
@@ -34,8 +24,6 @@ class ApiConfig {
   static const String userProfile = '/user/profile';
   static const String passwordResetRequest = '/forgot-password';
   static const String passwordReset = '/reset-password';
-  static const String emailVerificationNotice =
-      '/email/verification-notification';
   static const String patients = '/patients';
   static const String forms = '/forms';
   static const String dashboardMahasiswa = '/dashboard/mahasiswa';

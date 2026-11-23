@@ -27,21 +27,31 @@ class GenogramController extends GetxController {
   void loadInitialData(Map<String, dynamic>? structure) {
     if (structure == null) return;
     
+    final membersList = structure['members'] as List?;
+    final relationsList = structure['connections'] as List?;
+
+    // Satu entri yang rusak dilewati, bukan membuang seluruh genogram.
+    if (membersList != null) {
+      members.value = [
+        for (final m in membersList)
+          if (_tryParse(() => GenogramMember.fromJson(Map<String, dynamic>.from(m as Map)), 'member') case final parsed?) parsed,
+      ];
+    }
+    if (relationsList != null) {
+      relationships.value = [
+        for (final r in relationsList)
+          if (_tryParse(() => GenogramRelationship.fromJson(Map<String, dynamic>.from(r as Map)), 'relationship') case final parsed?) parsed,
+      ];
+    }
+    _refreshGraph();
+  }
+
+  T? _tryParse<T>(T Function() parse, String what) {
     try {
-      final membersList = structure['members'] as List?;
-      final relationsList = structure['connections'] as List?;
-      
-      if (membersList != null) {
-        members.value = membersList.map((m) => GenogramMember.fromJson(m)).toList();
-      }
-      
-      if (relationsList != null) {
-        relationships.value = relationsList.map((r) => GenogramRelationship.fromJson(r)).toList();
-      }
-      
-      _refreshGraph();
+      return parse();
     } catch (e) {
-      _logger.error('Error loading genogram data', error: e);
+      _logger.error('Skipping invalid genogram $what', error: e);
+      return null;
     }
   }
 

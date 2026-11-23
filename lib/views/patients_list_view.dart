@@ -165,7 +165,7 @@ class PatientsListViewState extends State<PatientsListView>
                     color: colorScheme.surface,
                     border: Border(
                       bottom: BorderSide(
-                        color: colorScheme.outlineVariant.withOpacity(0.3),
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -275,12 +275,12 @@ class PatientsListViewState extends State<PatientsListView>
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.4),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _isSearchFocused
               ? colorScheme.primary
-              : colorScheme.outlineVariant.withOpacity(0.5),
+              : colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: _isSearchFocused ? 2 : 1,
         ),
       ),
@@ -374,7 +374,7 @@ class PatientsListViewState extends State<PatientsListView>
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: colorScheme.errorContainer.withOpacity(0.3),
+                  color: colorScheme.errorContainer.withValues(alpha: 0.3),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -430,7 +430,7 @@ class PatientsListViewState extends State<PatientsListView>
               Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withOpacity(0.3),
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -543,7 +543,7 @@ class PatientsListViewState extends State<PatientsListView>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: colorScheme.outlineVariant.withOpacity(0.5),
+                color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                 width: 1,
               ),
             ),

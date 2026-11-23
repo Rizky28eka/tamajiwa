@@ -678,7 +678,7 @@ class _TerapiAktivitasKelompokFormViewState
                 else
                   const SizedBox.shrink(),
                 if (_currentSection == 8)
-                  Expanded(child: this.buildActionButtons())
+                  Expanded(child: buildActionButtons())
                 else
                   ElevatedButton(
                     onPressed: _nextSection,

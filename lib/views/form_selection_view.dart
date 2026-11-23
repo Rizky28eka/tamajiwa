@@ -122,7 +122,7 @@ class FormSelectionView extends GetView<FormSelectionController> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.primaryContainer.withOpacity(0.5),
+                color: colorScheme.primaryContainer.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -252,7 +252,7 @@ class FormSelectionView extends GetView<FormSelectionController> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: colorScheme.errorContainer.withOpacity(0.3),
+                color: colorScheme.errorContainer.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -376,7 +376,7 @@ class FormSelectionView extends GetView<FormSelectionController> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -393,8 +393,8 @@ class FormSelectionView extends GetView<FormSelectionController> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      statusColor.withOpacity(0.2),
-                      statusColor.withOpacity(0.1),
+                      statusColor.withValues(alpha: 0.2),
+                      statusColor.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -438,7 +438,7 @@ class FormSelectionView extends GetView<FormSelectionController> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.15),
+                              color: statusColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -505,7 +505,7 @@ class FormSelectionView extends GetView<FormSelectionController> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -523,7 +523,7 @@ class FormSelectionView extends GetView<FormSelectionController> {
                   gradient: LinearGradient(
                     colors: [
                       colorScheme.primaryContainer,
-                      colorScheme.primaryContainer.withOpacity(0.7),
+                      colorScheme.primaryContainer.withValues(alpha: 0.7),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -592,7 +592,7 @@ class FormSelectionView extends GetView<FormSelectionController> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -671,7 +671,7 @@ class FormSelectionView extends GetView<FormSelectionController> {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.12),
+            color: iconColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: iconColor, size: 22),

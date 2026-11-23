@@ -324,7 +324,7 @@ class _FormDetailViewState extends State<FormDetailView> {
                             decoration: BoxDecoration(
                               color: _getStatusColor(
                                 form.status,
-                              ).withOpacity(0.1),
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
                                 color: _getStatusColor(form.status),

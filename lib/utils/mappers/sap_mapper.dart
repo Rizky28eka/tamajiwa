@@ -3,39 +3,50 @@ class SapMapper {
     final result = <String, dynamic>{};
 
     // Basic form information
-    if (formData['patient_id'] != null)
+    if (formData['patient_id'] != null) {
       result['patient_id'] = formData['patient_id'];
+    }
     if (formData['status'] != null) result['status'] = formData['status'];
 
     // 1. Identitas SAP
     if (formData['topik'] != null) result['topik'] = formData['topik'];
-    if (formData['sub_topik'] != null)
+    if (formData['sub_topik'] != null) {
       result['sub_topik'] = formData['sub_topik'];
-    if (formData['pokok_bahasan'] != null)
+    }
+    if (formData['pokok_bahasan'] != null) {
       result['sub_topik'] = formData['pokok_bahasan']; // alias
+    }
     if (formData['sasaran'] != null) result['sasaran'] = formData['sasaran'];
-    if (formData['tanggal_pelaksanaan'] != null)
+    if (formData['tanggal_pelaksanaan'] != null) {
       result['tanggal_pelaksanaan'] = formData['tanggal_pelaksanaan'];
-    if (formData['hari_tanggal'] != null)
+    }
+    if (formData['hari_tanggal'] != null) {
       result['tanggal_pelaksanaan'] = formData['hari_tanggal']; // alias
-    if (formData['waktu_pelaksanaan'] != null)
+    }
+    if (formData['waktu_pelaksanaan'] != null) {
       result['waktu_pelaksanaan'] = formData['waktu_pelaksanaan'];
-    if (formData['waktu'] != null)
+    }
+    if (formData['waktu'] != null) {
       result['waktu_pelaksanaan'] = formData['waktu']; // alias
+    }
     if (formData['tempat'] != null) result['tempat'] = formData['tempat'];
     if (formData['durasi'] != null) result['durasi'] = formData['durasi'];
 
     // 2. Tujuan
-    if (formData['tujuan_umum'] != null)
+    if (formData['tujuan_umum'] != null) {
       result['tujuan_umum'] = formData['tujuan_umum'];
-    if (formData['tujuan_khusus'] != null)
+    }
+    if (formData['tujuan_khusus'] != null) {
       result['tujuan_khusus'] = formData['tujuan_khusus'];
+    }
 
     // 3. Materi
-    if (formData['materi'] != null)
+    if (formData['materi'] != null) {
       result['materi_penyuluhan'] = formData['materi']; // name mapping
-    if (formData['materi_penyuluhan'] != null)
+    }
+    if (formData['materi_penyuluhan'] != null) {
       result['materi_penyuluhan'] = formData['materi_penyuluhan'];
+    }
 
     // 4. Metode & Media - convert string to array for backend
     if (formData['metode'] != null) {
@@ -46,14 +57,18 @@ class SapMapper {
     }
 
     // A. Kegiatan Penyuluhan - Alokasi Waktu Detail
-    if (formData['waktu_pembukaan'] != null)
+    if (formData['waktu_pembukaan'] != null) {
       result['waktu_pembukaan'] = formData['waktu_pembukaan'];
-    if (formData['waktu_penyampaian_materi'] != null)
+    }
+    if (formData['waktu_penyampaian_materi'] != null) {
       result['waktu_penyampaian_materi'] = formData['waktu_penyampaian_materi'];
-    if (formData['waktu_tanya_jawab'] != null)
+    }
+    if (formData['waktu_tanya_jawab'] != null) {
       result['waktu_tanya_jawab'] = formData['waktu_tanya_jawab'];
-    if (formData['waktu_penutup'] != null)
+    }
+    if (formData['waktu_penutup'] != null) {
       result['waktu_penutup'] = formData['waktu_penutup'];
+    }
 
     // A. Kegiatan Penyuluhan - Table Kegiatan
     if (formData['tabel_kegiatan'] != null) {
@@ -94,61 +109,84 @@ class SapMapper {
 
     // 7. Pengorganisasian (Team Members)
     if (formData['penyaji'] != null) result['penyaji'] = formData['penyaji'];
-    if (formData['penyuluh'] != null)
+    if (formData['penyuluh'] != null) {
       result['penyaji'] = formData['penyuluh']; // alias
-    if (formData['moderator'] != null)
+    }
+    if (formData['moderator'] != null) {
       result['moderator'] = formData['moderator'];
-    if (formData['fasilitator'] != null)
+    }
+    if (formData['fasilitator'] != null) {
       result['fasilitator'] = formData['fasilitator'];
-    if (formData['time_keeper'] != null)
+    }
+    if (formData['time_keeper'] != null) {
       result['time_keeper'] = formData['time_keeper'];
-    if (formData['dokumentator'] != null)
+    }
+    if (formData['dokumentator'] != null) {
       result['dokumentator'] = formData['dokumentator'];
+    }
     if (formData['observer'] != null) result['observer'] = formData['observer'];
 
     // B. Evaluasi
-    if (formData['evaluasi_input'] != null)
+    if (formData['evaluasi_input'] != null) {
       result['evaluasi_input'] = formData['evaluasi_input'];
-    if (formData['evaluasi_struktur'] != null)
+    }
+    if (formData['evaluasi_struktur'] != null) {
       result['evaluasi_input'] =
           formData['evaluasi_struktur']; // old field name
-    if (formData['evaluasi_proses'] != null)
+    }
+    if (formData['evaluasi_proses'] != null) {
       result['evaluasi_proses'] = formData['evaluasi_proses'];
-    if (formData['evaluasi_hasil'] != null)
+    }
+    if (formData['evaluasi_hasil'] != null) {
       result['evaluasi_hasil'] = formData['evaluasi_hasil'];
+    }
 
     // C. Lampiran
-    if (formData['daftar_pustaka'] != null)
+    if (formData['daftar_pustaka'] != null) {
       result['daftar_pustaka'] = formData['daftar_pustaka'];
+    }
     // File paths handled by upload endpoints
-    if (formData['materi_file_path'] != null)
+    if (formData['materi_file_path'] != null) {
       result['materi_file_path'] = formData['materi_file_path'];
-    if (formData['dokumentasi_foto_path'] != null)
+    }
+    if (formData['dokumentasi_foto_path'] != null) {
       result['dokumentasi_foto_path'] = formData['dokumentasi_foto_path'];
-    if (formData['setting_tempat_file_path'] != null)
+    }
+    if (formData['setting_tempat_file_path'] != null) {
       result['setting_tempat_file_path'] = formData['setting_tempat_file_path'];
+    }
 
     // D. Hasil Evaluasi Penyuluhan - Info Pelaksanaan
-    if (formData['hasil_hari_tanggal'] != null)
+    if (formData['hasil_hari_tanggal'] != null) {
       result['hasil_hari_tanggal'] = formData['hasil_hari_tanggal'];
-    if (formData['hasil_waktu'] != null)
+    }
+    if (formData['hasil_waktu'] != null) {
       result['hasil_waktu'] = formData['hasil_waktu'];
-    if (formData['hasil_sasaran'] != null)
+    }
+    if (formData['hasil_sasaran'] != null) {
       result['hasil_sasaran'] = formData['hasil_sasaran'];
-    if (formData['hasil_moderator'] != null)
+    }
+    if (formData['hasil_moderator'] != null) {
       result['hasil_moderator'] = formData['hasil_moderator'];
-    if (formData['hasil_penyaji'] != null)
+    }
+    if (formData['hasil_penyaji'] != null) {
       result['hasil_penyaji'] = formData['hasil_penyaji'];
-    if (formData['hasil_observer'] != null)
+    }
+    if (formData['hasil_observer'] != null) {
       result['hasil_observer'] = formData['hasil_observer'];
-    if (formData['hasil_fasilitator'] != null)
+    }
+    if (formData['hasil_fasilitator'] != null) {
       result['hasil_fasilitator'] = formData['hasil_fasilitator'];
-    if (formData['hasil_time_keeper'] != null)
+    }
+    if (formData['hasil_time_keeper'] != null) {
       result['hasil_time_keeper'] = formData['hasil_time_keeper'];
-    if (formData['hasil_dokumentator'] != null)
+    }
+    if (formData['hasil_dokumentator'] != null) {
       result['hasil_dokumentator'] = formData['hasil_dokumentator'];
-    if (formData['hasil_media'] != null)
+    }
+    if (formData['hasil_media'] != null) {
       result['hasil_media'] = formData['hasil_media'];
+    }
 
     // D. Hasil Evaluasi - Checklists (JSON arrays)
     if (formData['hasil_evaluasi_input'] != null) {

@@ -591,55 +591,40 @@ class _PatientFormViewState extends State<PatientFormView> {
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('Laki-laki'),
-                    value: 'L',
-                    groupValue: _selectedGender,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (value) {
-                      if (value != null) {
-                        _logger.userInteraction(
-                          'Gender selected',
-                          element: 'GenderRadio_L',
-                          data: {
-                            'formType': widget.formType ?? 'PatientForm',
-                            'selectedValue': value,
-                            'previousValue': _selectedGender,
-                            'patientId': widget.patient?.id.toString(),
-                          },
-                        );
-                        setState(() => _selectedGender = value);
-                      }
-                    },
+            RadioGroup<String>(
+              groupValue: _selectedGender,
+              onChanged: (value) {
+                if (value == null) return;
+                _logger.userInteraction(
+                  'Gender selected',
+                  element: 'GenderRadio_$value',
+                  data: {
+                    'formType': widget.formType ?? 'PatientForm',
+                    'selectedValue': value,
+                    'previousValue': _selectedGender,
+                    'patientId': widget.patient?.id.toString(),
+                  },
+                );
+                setState(() => _selectedGender = value);
+              },
+              child: Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('Laki-laki'),
+                      value: 'L',
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('Perempuan'),
-                    value: 'P',
-                    groupValue: _selectedGender,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (value) {
-                      if (value != null) {
-                        _logger.userInteraction(
-                          'Gender selected',
-                          element: 'GenderRadio_P',
-                          data: {
-                            'formType': widget.formType ?? 'PatientForm',
-                            'selectedValue': value,
-                            'previousValue': _selectedGender,
-                            'patientId': widget.patient?.id.toString(),
-                          },
-                        );
-                        setState(() => _selectedGender = value);
-                      }
-                    },
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('Perempuan'),
+                      value: 'P',
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

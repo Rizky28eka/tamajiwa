@@ -187,6 +187,7 @@ class DiagnosisTab extends StatelessWidget {
                   descriptionController.text,
                 );
               }
+              if (!context.mounted) return;
               Navigator.of(context).pop();
             },
             child: Text(existingDiagnosis != null ? 'Update' : 'Simpan'),
@@ -344,6 +345,7 @@ class InterventionTab extends StatelessWidget {
                   descriptionController.text,
                 );
               }
+              if (!context.mounted) return;
               Navigator.of(context).pop();
             },
             child: Text(existingIntervention != null ? 'Update' : 'Simpan'),

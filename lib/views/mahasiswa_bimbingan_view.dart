@@ -107,7 +107,7 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
         gradient: LinearGradient(
           colors: [
             colorScheme.primaryContainer,
-            colorScheme.primaryContainer.withOpacity(0.8),
+            colorScheme.primaryContainer.withValues(alpha: 0.8),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -115,7 +115,7 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.1),
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -129,7 +129,7 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.15),
+                  color: colorScheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -155,7 +155,7 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
                     Text(
                       'Kelola dan pantau mahasiswa bimbingan Anda',
                       style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onPrimaryContainer.withOpacity(0.75),
+                        color: colorScheme.onPrimaryContainer.withValues(alpha: 0.75),
                         fontSize: isLargeScreen ? 15 : 14,
                       ),
                     ),
@@ -244,9 +244,9 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer.withOpacity(0.3),
+        color: colorScheme.errorContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.error.withOpacity(0.3), width: 1),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         children: [
@@ -265,10 +265,10 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
       width: double.infinity,
       padding: const EdgeInsets.all(48),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -278,13 +278,13 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.people_outline_rounded,
               size: 56,
-              color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 24),
@@ -303,7 +303,7 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -373,7 +373,7 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.5),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -393,7 +393,7 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
                     gradient: LinearGradient(
                       colors: [
                         colorScheme.primaryContainer,
-                        colorScheme.primaryContainer.withOpacity(0.7),
+                        colorScheme.primaryContainer.withValues(alpha: 0.7),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -401,7 +401,7 @@ class _MahasiswaBimbinganViewState extends State<MahasiswaBimbinganView> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: colorScheme.primary.withOpacity(0.2),
+                        color: colorScheme.primary.withValues(alpha: 0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),

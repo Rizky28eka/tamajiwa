@@ -161,7 +161,7 @@ class FormsListViewState extends State<FormsListView>
         color: colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.3),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -257,7 +257,7 @@ class FormsListViewState extends State<FormsListView>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -268,7 +268,7 @@ class FormsListViewState extends State<FormsListView>
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: colorScheme.primary, size: 22),
           filled: true,
-          fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+          fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -276,7 +276,7 @@ class FormsListViewState extends State<FormsListView>
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: colorScheme.outline.withOpacity(0.2),
+              color: colorScheme.outline.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -337,7 +337,7 @@ class FormsListViewState extends State<FormsListView>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: colorScheme.outlineVariant.withOpacity(0.5),
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
               width: 1,
             ),
           ),

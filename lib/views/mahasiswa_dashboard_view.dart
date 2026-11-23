@@ -235,7 +235,7 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.3)),
+        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: InkWell(
         onTap: () => _onServiceSelected(formType.type),
@@ -248,7 +248,7 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withOpacity(0.5),
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -378,16 +378,16 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -463,10 +463,10 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -478,7 +478,7 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
         separatorBuilder: (context, index) => Divider(
           height: 1,
           thickness: 1,
-          color: colorScheme.outlineVariant.withOpacity(0.3),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
         itemBuilder: (context, index) {
           final patient = controller.latestPatients[index];
@@ -518,32 +518,12 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildInfoChip(BuildContext context, IconData icon, String label) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildEmptyStateCard(
     BuildContext context,
     String message,
     IconData icon,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Center(
       child: Padding(padding: const EdgeInsets.all(16.0), child: Text(message)),
     );

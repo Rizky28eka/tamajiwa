@@ -317,10 +317,10 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: colorScheme.outline.withOpacity(0.2),
+              color: colorScheme.outline.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -363,7 +363,7 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -427,10 +427,10 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
             filled: true,
-            fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -438,7 +438,7 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.2),
+                color: colorScheme.outline.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -491,11 +491,11 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
           decoration: InputDecoration(
             hintText: 'Pilih tanggal',
             hintStyle: TextStyle(
-              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
             suffixIcon: const Icon(Icons.calendar_today),
             filled: true,
-            fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -503,7 +503,7 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.2),
+                color: colorScheme.outline.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -562,13 +562,13 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
             prefixIcon: icon != null
                 ? Icon(icon, color: colorScheme.primary, size: 22)
                 : null,
             filled: true,
-            fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -576,7 +576,7 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.2),
+                color: colorScheme.outline.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -598,7 +598,7 @@ class _CatatanTambahanFormViewState extends State<CatatanTambahanFormView>
         color: colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.3),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),

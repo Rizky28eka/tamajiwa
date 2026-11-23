@@ -385,7 +385,7 @@ class ProfileViewState extends State<ProfileView>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.2),
+                    color: colorScheme.primary.withValues(alpha: 0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -486,12 +486,12 @@ class ProfileViewState extends State<ProfileView>
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -524,8 +524,8 @@ class ProfileViewState extends State<ProfileView>
         prefixIcon: Icon(icon, color: colorScheme.primary),
         filled: true,
         fillColor: enabled
-            ? colorScheme.surfaceContainerHighest.withOpacity(0.3)
-            : colorScheme.surfaceContainerHighest.withOpacity(0.1),
+            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -533,7 +533,7 @@ class ProfileViewState extends State<ProfileView>
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.5),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -574,7 +574,7 @@ class ProfileViewState extends State<ProfileView>
           onPressed: onToggle,
         ),
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -582,7 +582,7 @@ class ProfileViewState extends State<ProfileView>
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.5),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -643,7 +643,7 @@ class ProfileViewState extends State<ProfileView>
       bool hasDosenAssigned = user?.dosenId != null && user?.dosenId != 0;
 
       return DropdownButtonFormField<int>(
-        value: hasDosenAssigned ? user?.dosenId : _selectedDosenId,
+        initialValue: hasDosenAssigned ? user?.dosenId : _selectedDosenId,
         onChanged: hasDosenAssigned
             ? null
             : (value) {
@@ -663,7 +663,7 @@ class ProfileViewState extends State<ProfileView>
               : 'Pilih Dosen',
           prefixIcon: Icon(Icons.school_outlined, color: colorScheme.primary),
           filled: true,
-          fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+          fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -671,7 +671,7 @@ class ProfileViewState extends State<ProfileView>
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: colorScheme.outlineVariant.withOpacity(0.5),
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
               width: 1,
             ),
           ),

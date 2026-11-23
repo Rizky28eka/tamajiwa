@@ -839,8 +839,9 @@ class _MentalHealthAssessmentFormViewState
         const SizedBox(height: 16),
         Obx(() {
           final diagnoses = nursingService.diagnoses;
-          if (diagnoses.isEmpty)
+          if (diagnoses.isEmpty) {
             return const Center(child: Text('Data diagnosis tidak tersedia.'));
+          }
           return _buildDropdownWithTooltip<int>(
             name: 'renpra_diagnosis', // Changed key to avoid conflict
             label: 'Diagnosis Keperawatan',
@@ -911,19 +912,20 @@ class _MentalHealthAssessmentFormViewState
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: colorScheme.outline.withOpacity(0.2),
+              color: colorScheme.outline.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
           child: Obx(() {
             final interventions = _interventionController.interventions;
-            if (interventions.isEmpty)
+            if (interventions.isEmpty) {
               return const Center(
                 child: Text('Tidak ada intervensi tersedia.'),
               );
+            }
             final options = interventions
                 .map(
                   (iv) => FormBuilderFieldOption(
@@ -991,7 +993,7 @@ class _MentalHealthAssessmentFormViewState
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -1080,7 +1082,7 @@ class _MentalHealthAssessmentFormViewState
           style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
           decoration: InputDecoration(
             filled: true,
-            fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -1088,7 +1090,7 @@ class _MentalHealthAssessmentFormViewState
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.2),
+                color: colorScheme.outline.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -1145,7 +1147,7 @@ class _MentalHealthAssessmentFormViewState
           onChanged: onChanged,
           decoration: InputDecoration(
             filled: true,
-            fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -1153,7 +1155,7 @@ class _MentalHealthAssessmentFormViewState
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.2),
+                color: colorScheme.outline.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -1175,7 +1177,7 @@ class _MentalHealthAssessmentFormViewState
         color: colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.3),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),

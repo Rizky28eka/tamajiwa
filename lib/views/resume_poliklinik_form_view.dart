@@ -555,8 +555,9 @@ class _ResumePoliklinikFormViewState extends State<ResumePoliklinikFormView>
         const SizedBox(height: 16),
         Obx(() {
           final diagnoses = nursingService.diagnoses;
-          if (diagnoses.isEmpty)
+          if (diagnoses.isEmpty) {
             return const Center(child: Text('Data diagnosis tidak tersedia.'));
+          }
           return CustomDropdown<int>(
             name: 'renpra_diagnosis', // Changed key to avoid conflict
             label: 'Diagnosis Keperawatan',
@@ -585,8 +586,9 @@ class _ResumePoliklinikFormViewState extends State<ResumePoliklinikFormView>
         Obx(() {
           final interventions = _interventionController.interventions;
 
-          if (interventions.isEmpty)
+          if (interventions.isEmpty) {
             return const Center(child: Text('Tidak ada intervensi tersedia.'));
+          }
           final options = interventions
               .map(
                 (iv) =>
@@ -688,7 +690,7 @@ class _ResumePoliklinikFormViewState extends State<ResumePoliklinikFormView>
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -740,7 +742,7 @@ class _ResumePoliklinikFormViewState extends State<ResumePoliklinikFormView>
         color: colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.3),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),

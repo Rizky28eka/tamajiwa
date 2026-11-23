@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
 Route::get('/health-check', function () {
     return response()->json(['status' => 'OK', 'timestamp' => now(), 'database' => DB::connection()->getPdo() ? 'Connected' : 'Disconnected'], 200);
@@ -39,9 +41,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Form routes
     Route::get('forms/submitted', [FormController::class, 'getSubmittedForms']);
-    Route::get('forms/submitted-test', function () {
-        return response()->json(['test' => 'success']);
-    });
     Route::post('forms/{form}/upload-material', [FormController::class, 'uploadMaterial']);
     Route::post('forms/{form}/upload-photo', [FormController::class, 'uploadPhoto']);
     Route::post('forms/{form}/upload-setting-tempat', [FormController::class, 'uploadSettingTempat']);

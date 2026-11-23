@@ -1,8 +1,9 @@
 class SapReverseMapper {
   static Map<String, dynamic> reverse(Map<String, dynamic> data) {
     String? joinListToString(dynamic value) {
-      if (value is List)
+      if (value is List) {
         return value.whereType<Object>().map((e) => e.toString()).join(', ');
+      }
       if (value is String) return value;
       return null;
     }

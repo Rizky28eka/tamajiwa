@@ -93,8 +93,8 @@ class PatientSelectionView extends GetView<PatientController> {
             controller.fetchPatients();
           }
         },
-        child: const Icon(Icons.add),
         tooltip: 'Tambah Pasien Baru',
+        child: const Icon(Icons.add),
       ),
     );
   }

@@ -11,9 +11,7 @@ import '../widgets/form_components/custom_dropdown.dart';
 import '../widgets/form_components/custom_checkbox_group.dart';
 import '../services/nursing_data_global_service.dart';
 
-import '../widgets/form_components/custom_date_time_picker.dart';
 import '../services/logger_service.dart';
-import '../utils/ui_helpers.dart';
 
 class StrategiPelaksanaanKomunikasiFormView extends StatefulWidget {
   final Patient? patient;
@@ -355,7 +353,7 @@ class _StrategiPelaksanaanKomunikasiFormViewState
                 else
                   const SizedBox.shrink(),
                 if (_currentSection == 1)
-                  Expanded(child: this.buildActionButtons())
+                  Expanded(child: buildActionButtons())
                 else
                   ElevatedButton(
                     onPressed: _nextSection,
