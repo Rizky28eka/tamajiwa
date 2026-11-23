@@ -635,12 +635,10 @@ class PatientsListViewState extends State<PatientsListView>
   }
 
   String _getInitials(String name) {
-    final parts = name.trim().split(' ');
+    // Abaikan spasi ganda dan nama kosong; substring pada string kosong akan melempar error.
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return 'N/A';
-    if (parts.length == 1) {
-      return parts[0].substring(0, 1).toUpperCase();
-    }
-    return '${parts[0].substring(0, 1)}${parts[1].substring(0, 1)}'
-        .toUpperCase();
+    if (parts.length == 1) return parts[0].characters.first.toUpperCase();
+    return '${parts[0].characters.first}${parts[1].characters.first}'.toUpperCase();
   }
 }

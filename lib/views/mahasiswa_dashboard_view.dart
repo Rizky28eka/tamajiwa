@@ -461,13 +461,14 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
   ) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+    // Material (bukan Container berwarna) agar efek sentuh ListTile tetap terlihat.
+    return Material(
+      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
+        side: BorderSide(
           color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-          width: 1,
         ),
       ),
       child: ListView.separated(
@@ -488,6 +489,12 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
     );
   }
 
+  /// Huruf awal nama; aman untuk nama kosong atau null.
+  String _initial(dynamic name) {
+    final text = (name as String?)?.trim() ?? '';
+    return text.isEmpty ? '?' : text.characters.first.toUpperCase();
+  }
+
   Widget _buildPatientTile(
     BuildContext context,
     Map<String, dynamic> patient,
@@ -499,7 +506,7 @@ class MahasiswaDashboardView extends GetView<DashboardController> {
       leading: CircleAvatar(
         backgroundColor: colorScheme.primaryContainer,
         child: Text(
-          (patient['name'] as String?)?.substring(0, 1).toUpperCase() ?? '?',
+          _initial(patient['name']),
           style: TextStyle(color: colorScheme.onPrimaryContainer),
         ),
       ),

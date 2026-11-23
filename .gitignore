@@ -46,7 +46,6 @@ app.*.map.json
 
 # test file
 *.test
-*.md
 *.txt
 # Secrets and data: never commit
 *.zip

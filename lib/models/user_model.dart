@@ -28,9 +28,10 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'],
-      name: json['name'],
-      email: json['email'],
-      role: json['role'],
+      name: (json['name'] ?? '').toString(),
+      // Data parsial (mis. dosen yang belum termuat) tidak boleh membuat layar crash.
+      email: (json['email'] ?? '').toString(),
+      role: (json['role'] ?? '').toString(),
       username: json['username'],
       phoneNumber: json['phone_number'],
       profilePhoto: json['profile_photo'],
