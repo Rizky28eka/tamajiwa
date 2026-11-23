@@ -31,13 +31,13 @@ A mobile app and API for **nursing students and their lecturers** to document pa
 
 Captured from the real app against a locally seeded backend, using Faker-generated demo data.
 
-| Sign in | Lecturer dashboard | Lecturer: students |
+| Server setup | Sign in | Student dashboard |
 |---|---|---|
-| ![Sign in](docs/screenshots/login.jpg) | ![Lecturer dashboard](docs/screenshots/dosen-dashboard.jpg) | ![Students](docs/screenshots/dosen-students.jpg) |
+| ![Server setup](docs/screenshots/server-setup.jpg) | ![Sign in](docs/screenshots/login.jpg) | ![Student dashboard](docs/screenshots/student-dashboard.jpg) |
 
-| Lecturer: forms to review | Student dashboard | Student: forms |
+| Student: patients | Lecturer dashboard | Lecturer: forms to review |
 |---|---|---|
-| ![Forms to review](docs/screenshots/dosen-forms.jpg) | ![Student dashboard](docs/screenshots/student-dashboard.jpg) | ![Student forms](docs/screenshots/student-forms.jpg) |
+| ![Student: patients](docs/screenshots/student-patients.jpg) | ![Lecturer dashboard](docs/screenshots/dosen-dashboard.jpg) | ![Lecturer: forms to review](docs/screenshots/dosen-forms.jpg) |
 
 ## Tech stack
 

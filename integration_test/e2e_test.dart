@@ -30,6 +30,18 @@ void main() {
   testWidgets('login and browse as $_role', (t) async {
     app.main();
     await wait(t, 5);
+    // Run pertama: layar "Hubungkan ke server" muncul lebih dulu.
+    if (find.text('Hubungkan ke server').evaluate().isNotEmpty) {
+      await shot(t, 'server-setup', 0.5);
+      await t.enterText(find.byType(TextField).first, 'http://127.0.0.1:8000/api');
+      await t.pump();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await wait(t, 1);
+      await t.tap(find.text('Tes koneksi'));
+      await wait(t, 4);
+      await t.tap(find.text('Simpan & lanjut'));
+      await wait(t, 3);
+    }
     await shot(t, 'login', 0.5);
 
     final fields = find.byType(TextField);
@@ -39,12 +51,12 @@ void main() {
     await t.pump();
     FocusManager.instance.primaryFocus?.unfocus(); // tutup keyboard agar tombol tidak tertutup
     await wait(t, 1);
-    await t.tap(find.byType(ElevatedButton).first);
+    await t.tap(find.text('Masuk').last);
     await wait(t, 5);
     await shot(t, 'dashboard', 2);
 
     for (final entry in {
-      'tab2': Icons.school_outlined,
+      'tab2': _role == 'dosen' ? Icons.school_outlined : Icons.people_alt_outlined,
       'tab3': Icons.description_outlined,
       'tab4': Icons.person_outline_rounded,
     }.entries) {

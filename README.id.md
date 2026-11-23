@@ -31,13 +31,13 @@ Aplikasi mobile dan API untuk **mahasiswa keperawatan dan dosennya** mendokument
 
 Diambil dari aplikasi sungguhan terhadap backend lokal yang di-seed, dengan data demo buatan Faker.
 
-| Masuk | Dashboard dosen | Dosen: mahasiswa |
+| Hubungkan server | Masuk | Dashboard mahasiswa |
 |---|---|---|
-| ![Sign in](docs/screenshots/login.jpg) | ![Lecturer dashboard](docs/screenshots/dosen-dashboard.jpg) | ![Students](docs/screenshots/dosen-students.jpg) |
+| ![Hubungkan server](docs/screenshots/server-setup.jpg) | ![Masuk](docs/screenshots/login.jpg) | ![Dashboard mahasiswa](docs/screenshots/student-dashboard.jpg) |
 
-| Dosen: formulir untuk direviu | Dashboard mahasiswa | Mahasiswa: formulir |
+| Mahasiswa: pasien | Dashboard dosen | Dosen: formulir untuk direviu |
 |---|---|---|
-| ![Forms to review](docs/screenshots/dosen-forms.jpg) | ![Student dashboard](docs/screenshots/student-dashboard.jpg) | ![Student forms](docs/screenshots/student-forms.jpg) |
+| ![Mahasiswa: pasien](docs/screenshots/student-patients.jpg) | ![Dashboard dosen](docs/screenshots/dosen-dashboard.jpg) | ![Dosen: formulir untuk direviu](docs/screenshots/dosen-forms.jpg) |
 
 ## Teknologi
 
